@@ -1,4 +1,4 @@
-/// <reference types="../../worker.d.ts" />
+/// <reference types="../../../../worker-configuration.d.ts" />
 
 export interface TRPCContext {
   env: Env;
