@@ -4,6 +4,18 @@
     "files": { "ignoreUnknown": false, "ignore": ["dist/", "*.gen.ts"] },
     "formatter": { "enabled": true, "indentStyle": "space" },
     "organizeImports": { "enabled": true },
-    "linter": { "enabled": true, "rules": { "recommended": true } },
+    "linter": { 
+      "enabled": true, 
+      "rules": { 
+        "recommended": true,
+        "suspicious": {
+          "noExplicitAny": "error"
+        },
+        "style": {
+          "useTemplate": "error",
+          "noNonNullAssertion": "warn"
+        }
+      } 
+    },
     "javascript": { "formatter": { "quoteStyle": "single" } }
   }

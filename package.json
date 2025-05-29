@@ -15,10 +15,15 @@
     "publish": true
   },
   "dependencies": {
+    "@hono/trpc-server": "^0.3.4",
     "@tanstack/react-router": "^1.120.11",
+    "@trpc/client": "^11.1.4",
+    "@trpc/react-query": "^11.1.4",
+    "@trpc/server": "^11.1.4",
     "hono": "4.7.7",
     "react": "19.0.0",
-    "react-dom": "19.0.0"
+    "react-dom": "19.0.0",
+    "zod": "^3.25.36"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -42,10 +47,14 @@
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types",
     "dev": "vite",
-    "lint": "bunx biome lint --fix src/",
+    "lint": "bunx biome lint src/",
     "lint:fix": "bunx biome check --write src/",
     "format": "bunx biome format --write src/",
-    "tsc": "bunx tsc --noEmit"
+    "format:check": "bunx biome format src/",
+    "tsc": "bunx tsc --noEmit",
+    "type-check": "bunx tsc --noEmit --pretty",
+    "check:all": "bun run type-check && bun run lint && bun run format:check",
+    "ci": "bun run type-check && bun run lint && bun run format:check"
   },
   "type": "module"
 }
