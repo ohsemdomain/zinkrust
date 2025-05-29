@@ -28,6 +28,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@cloudflare/vite-plugin": "1.2.4",
+    "@cloudflare/workers-types": "^4.20250529.0",
     "@eslint/js": "9.25.1",
     "@tanstack/router-devtools": "^1.120.11",
     "@tanstack/router-vite-plugin": "^1.120.11",
@@ -45,7 +46,6 @@
     "build": "tsc -b && vite build",
     "check": "tsc && vite build && wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
-    "cf-typegen": "wrangler types",
     "dev": "vite",
     "lint": "bunx biome lint src/",
     "lint:fix": "bunx biome check --write src/",

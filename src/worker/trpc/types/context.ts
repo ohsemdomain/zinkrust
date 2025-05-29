@@ -1,3 +1,5 @@
+/// <reference types="../../worker.d.ts" />
+
 export interface TRPCContext {
   env: Env;
 }

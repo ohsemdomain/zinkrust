@@ -19,7 +19,7 @@ export const productsRouter = createTRPCRouter({
         ).all();
 
         // Validate each result against the schema
-        const validatedResults = results.map((result) => {
+        const validatedResults = results.map((result: unknown) => {
           try {
             return productSchema.parse(result);
           } catch (error) {
