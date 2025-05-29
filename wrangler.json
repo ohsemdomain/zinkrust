@@ -12,5 +12,25 @@
   "upload_source_maps": true,
   "assets": {
     "not_found_handling": "single-page-application"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zinkrust-d1",
+      "database_id": "8717a09c-70ad-4039-b5f7-fa7f883ca083",
+      "migrations_dir": "src/worker/migrations"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "zinkrust_kv",
+      "id": "42d28382ab2a4e72929c184291a965f2"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "bucket_name": "zinkrust-r2",
+      "binding": "zinkrust_r2"
+    }
+  ]
 }

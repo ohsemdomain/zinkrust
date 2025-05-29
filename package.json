@@ -38,13 +38,13 @@
   },
   "scripts": {
     "build": "tsc -b && vite build",
-    "cf-typegen": "wrangler types",
     "check": "tsc && vite build && wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types",
     "dev": "vite",
-    "lint": "biome check src/",
-    "lint:fix": "biome check --write src/",
-    "format": "biome format --write src/",
+    "lint": "bunx biome lint --fix src/",
+    "lint:fix": "bunx biome check --write src/",
+    "format": "bunx biome format --write src/",
     "tsc": "bunx tsc --noEmit"
   },
   "type": "module"
