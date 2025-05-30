@@ -16,15 +16,9 @@ export const createProductSchema = z.object({
       },
     ),
   price_cents: z
-    .union([z.number(), z.string()])
-    .transform((val) => {
-      const dollars = typeof val === 'string' ? Number.parseFloat(val) : val;
-      return Math.round(dollars * 100);
-    })
-    .refine((val) => val > 0, { message: 'Price must be positive' })
-    .refine((val) => Number.isInteger(val), {
-      message: 'Price must be a valid amount',
-    }),
+    .number()
+    .int('Price must be a whole number of cents')
+    .positive('Price must be positive'),
   description: z.string().optional(),
 });
 

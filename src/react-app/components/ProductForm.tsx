@@ -53,11 +53,11 @@ export function ProductForm({
   // Form initializes with correct values from initialValues prop
 
   const handleSubmit = (values: ProductFormData) => {
-    // Convert dollars to the format expected by the schema
+    // Convert dollars to cents before sending to backend
     const submissionData = {
       name: values.name,
       category: values.category,
-      price_cents: values.price, // Schema will convert dollars to cents
+      price_cents: Math.round(values.price * 100), // Convert dollars to cents here
       description: values.description,
     };
     onSubmit(submissionData as CreateProduct);
