@@ -1,3 +1,14 @@
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Container,
+  Grid,
+  Loader,
+  Text,
+  Title,
+} from '@mantine/core';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { trpc } from '~/lib/trpc';
@@ -47,64 +58,69 @@ function Products() {
     return status === 1 ? 'Active' : 'Inactive';
   };
 
-  /* if (loading) {
+  if (loading) {
     return (
-      <div className="p-2">
-        <h2>Products</h2>
-        <p>Loading products...</p>
-      </div>
+      <Container>
+        <Loader />
+      </Container>
     );
-  } */
+  }
 
   if (error) {
     return (
-      <div className="p-2">
-        <h2>Products</h2>
-        <p style={{ color: 'red' }}>Error: {error}</p>
-      </div>
+      <Container>
+        <Title order={2}>Products</Title>
+        <Alert color="red">Error: {error}</Alert>
+      </Container>
     );
   }
 
   return (
-    <div className="p-2">
-      <div className="products-header">
-        <h2>Products</h2>
-        <Link to="/products/create" className="btn-primary">
-          Add New Product
-        </Link>
-      </div>
-      <div className="products-grid">
+    <Container>
+      <Grid justify="space-between" align="center" mb="md">
+        <Grid.Col span="auto">
+          <Title order={2}>Products</Title>
+        </Grid.Col>
+        <Grid.Col span="content">
+          <Button component={Link} to="/products/create">
+            Add New Product
+          </Button>
+        </Grid.Col>
+      </Grid>
+      <Grid>
         {products.map((product) => (
-          <div key={product.id} className="product-card">
-            <h3>
-              <Link
-                to="/products/$id"
-                params={{ id: product.id.toString() }}
-                className="product-link"
-              >
-                {product.name}
-              </Link>
-            </h3>
-            <p>
-              <strong>ID:</strong> {product.id}
-            </p>
-            <p>
-              <strong>Category:</strong> {getCategoryName(product.category)}
-            </p>
-            <p>
-              <strong>Price:</strong> ${product.price}
-            </p>
-            <p>
-              <strong>Status:</strong> {getStatusName(product.status)}
-            </p>
-            {product.description && (
-              <p>
-                <strong>Description:</strong> {product.description}
-              </p>
-            )}
-          </div>
+          <Grid.Col key={product.id} span={{ base: 12, sm: 6, md: 4 }}>
+            <Card padding="lg" withBorder>
+              <Title order={3}>
+                <Link
+                  to="/products/$id"
+                  params={{ id: product.id.toString() }}
+                  style={{ color: '#228be6', textDecoration: 'none' }}
+                >
+                  {product.name}
+                </Link>
+              </Title>
+              <Text>
+                <strong>ID:</strong> {product.id}
+              </Text>
+              <Text>
+                <strong>Category:</strong> {getCategoryName(product.category)}
+              </Text>
+              <Text>
+                <strong>Price:</strong> ${product.price}
+              </Text>
+              <Badge color={product.status === 1 ? 'green' : 'gray'}>
+                {getStatusName(product.status)}
+              </Badge>
+              {product.description && (
+                <Text>
+                  <strong>Description:</strong> {product.description}
+                </Text>
+              )}
+            </Card>
+          </Grid.Col>
         ))}
-      </div>
-    </div>
+      </Grid>
+    </Container>
   );
 }

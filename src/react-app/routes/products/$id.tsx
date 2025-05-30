@@ -1,3 +1,14 @@
+import {
+  Alert,
+  Button,
+  Container,
+  Grid,
+  Group,
+  Loader,
+  Stack,
+  Text,
+  Title,
+} from '@mantine/core';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { trpc } from '~/lib/trpc';
@@ -71,75 +82,80 @@ function ProductDetail() {
 
   if (loading) {
     return (
-      <div className="p-2">
-        <h2>Product Details</h2>
-        <p>Loading product...</p>
-      </div>
+      <Container>
+        <Title order={2}>Product Details</Title>
+        <Loader />
+      </Container>
     );
   }
 
   if (error || !product) {
     return (
-      <div className="p-2">
-        <h2>Product Details</h2>
-        <p style={{ color: 'red' }}>Error: {error || 'Product not found'}</p>
-      </div>
+      <Container>
+        <Title order={2}>Product Details</Title>
+        <Alert color="red">Error: {error || 'Product not found'}</Alert>
+      </Container>
     );
   }
 
   return (
-    <div className="p-2">
-      <h2>Product Details</h2>
-      <div className="product-detail">
-        <h3>{product.name}</h3>
-        <div className="detail-grid">
-          <div>
-            <strong>ID:</strong> {product.id}
-          </div>
-          <div>
-            <strong>Category:</strong> {getCategoryName(product.category)}
-          </div>
-          <div>
-            <strong>Price:</strong> ${product.price}
-          </div>
-          <div>
-            <strong>Status:</strong>{' '}
-            {product.status === 1 ? 'Active' : 'Inactive'}
-          </div>
-          <div>
-            <strong>Created:</strong>{' '}
-            {new Date(product.created_at * 1000).toLocaleDateString()}
-          </div>
-          <div>
-            <strong>Updated:</strong>{' '}
-            {new Date(product.updated_at * 1000).toLocaleDateString()}
-          </div>
-        </div>
+    <Container>
+      <Title order={2}>Product Details</Title>
+      <Stack>
+        <Title order={3}>{product.name}</Title>
+        <Grid>
+          <Grid.Col>
+            <Text>
+              <strong>ID:</strong> {product.id}
+            </Text>
+          </Grid.Col>
+          <Grid.Col>
+            <Text>
+              <strong>Category:</strong> {getCategoryName(product.category)}
+            </Text>
+          </Grid.Col>
+          <Grid.Col>
+            <Text>
+              <strong>Price:</strong> ${product.price}
+            </Text>
+          </Grid.Col>
+          <Grid.Col>
+            <Text>
+              <strong>Status:</strong>{' '}
+              {product.status === 1 ? 'Active' : 'Inactive'}
+            </Text>
+          </Grid.Col>
+          <Grid.Col>
+            <Text>
+              <strong>Created:</strong>{' '}
+              {new Date(product.created_at * 1000).toLocaleDateString()}
+            </Text>
+          </Grid.Col>
+          <Grid.Col>
+            <Text>
+              <strong>Updated:</strong>{' '}
+              {new Date(product.updated_at * 1000).toLocaleDateString()}
+            </Text>
+          </Grid.Col>
+        </Grid>
         {product.description && (
-          <div className="description">
-            <strong>Description:</strong>
-            <p>{product.description}</p>
-          </div>
+          <Stack gap="xs">
+            <Text>
+              <strong>Description:</strong>
+            </Text>
+            <Text>{product.description}</Text>
+          </Stack>
         )}
 
-        <div className="product-actions">
-          <Link
-            to="/products/edit/$id"
-            params={{ id: product.id.toString() }}
-            className="btn-primary"
-          >
-            Edit Product
+        <Group>
+          <Link to="/products/edit/$id" params={{ id: product.id.toString() }}>
+            <Button>Edit Product</Button>
           </Link>
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleting}
-            className="btn-danger"
-          >
+          <Button color="red" onClick={handleDelete} disabled={deleting}>
             {deleting ? 'Deleting...' : 'Delete Product'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </Group>
+      </Stack>
+    </Container>
   );
 }

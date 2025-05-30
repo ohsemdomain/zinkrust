@@ -1,6 +1,9 @@
+import { MantineProvider } from '@mantine/core';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import './_styles.css';
+import { theme } from './_theme';
 
 // Import the generated route tree
 import { routeTree } from './routeTree.gen';
@@ -20,6 +23,8 @@ if (!rootElement) throw new Error('Root element not found');
 
 createRoot(rootElement).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <MantineProvider theme={theme}>
+      <RouterProvider router={router} />
+    </MantineProvider>
   </StrictMode>,
 );
