@@ -1,5 +1,10 @@
 import { trpc } from '~/lib/trpc';
-import type { Product } from '../../worker/schemas/products';
+import { PriceUtils } from '../../shared/utils/price';
+import type {
+  CreateProduct,
+  Product,
+  UpdateProduct,
+} from '../../worker/schemas/products';
 
 type CacheData = {
   products: Product[];
@@ -14,7 +19,7 @@ type CacheKey = {
   filter_by: 'active' | 'inactive' | 'all';
   page: number;
   per_page: number;
-  sort_column: 'name' | 'price' | 'category' | 'status' | 'created_at' | 'updated_at';
+  sort_column: 'name' | 'category' | 'status' | 'created_at' | 'updated_at';
   sort_order: 'ASC' | 'DESC';
 };
 
@@ -32,7 +37,7 @@ export function useProductMutations() {
         id: tempId,
         name: newProduct.name,
         category: newProduct.category,
-        price: typeof newProduct.price === 'string' ? Number.parseFloat(newProduct.price) : newProduct.price,
+        price_cents: Math.round(newProduct.price_cents * 100), // Direct conversion since form sends dollars
         description: newProduct.description || null,
         status: 1, // Always create as active
         created_at: Math.floor(Date.now() / 1000),
@@ -42,11 +47,17 @@ export function useProductMutations() {
       const previousCaches: Record<string, CacheEntry> = {};
 
       // Update caches for all relevant filter combinations
-      const filters: ('all' | 'active' | 'inactive')[] = ['all', 'active', 'inactive'];
-      const sortOrders: { sort_column: CacheKey['sort_column']; sort_order: CacheKey['sort_order'] }[] = [
+      const filters: ('all' | 'active' | 'inactive')[] = [
+        'all',
+        'active',
+        'inactive',
+      ];
+      const sortOrders: {
+        sort_column: CacheKey['sort_column'];
+        sort_order: CacheKey['sort_order'];
+      }[] = [
         { sort_column: 'created_at', sort_order: 'DESC' },
         { sort_column: 'name', sort_order: 'ASC' },
-        { sort_column: 'price', sort_order: 'ASC' },
       ];
 
       for (const filter_by of filters) {
@@ -124,17 +135,23 @@ export function useProductMutations() {
         ? {
             ...previousProduct,
             ...updatedProduct,
-            price: typeof updatedProduct.price === 'string' ? Number.parseFloat(updatedProduct.price) : updatedProduct.price,
+            price_cents: Math.round(updatedProduct.price_cents * 100), // Direct conversion since form sends dollars
             updated_at: Math.floor(Date.now() / 1000),
           }
         : null;
 
       // Update caches for all relevant filter combinations
-      const filters: ('all' | 'active' | 'inactive')[] = ['all', 'active', 'inactive'];
-      const sortOrders: { sort_column: CacheKey['sort_column']; sort_order: CacheKey['sort_order'] }[] = [
+      const filters: ('all' | 'active' | 'inactive')[] = [
+        'all',
+        'active',
+        'inactive',
+      ];
+      const sortOrders: {
+        sort_column: CacheKey['sort_column'];
+        sort_order: CacheKey['sort_order'];
+      }[] = [
         { sort_column: 'created_at', sort_order: 'DESC' },
         { sort_column: 'name', sort_order: 'ASC' },
-        { sort_column: 'price', sort_order: 'ASC' },
       ];
 
       for (const filter_by of filters) {
@@ -259,11 +276,17 @@ export function useProductMutations() {
 
       // Note: This is now a soft delete (status = 0) on the backend
       // Update caches for all relevant filter combinations
-      const filters: ('all' | 'active' | 'inactive')[] = ['all', 'active', 'inactive'];
-      const sortOrders: { sort_column: CacheKey['sort_column']; sort_order: CacheKey['sort_order'] }[] = [
+      const filters: ('all' | 'active' | 'inactive')[] = [
+        'all',
+        'active',
+        'inactive',
+      ];
+      const sortOrders: {
+        sort_column: CacheKey['sort_column'];
+        sort_order: CacheKey['sort_order'];
+      }[] = [
         { sort_column: 'created_at', sort_order: 'DESC' },
         { sort_column: 'name', sort_order: 'ASC' },
-        { sort_column: 'price', sort_order: 'ASC' },
       ];
 
       for (const filter_by of filters) {

@@ -47,7 +47,6 @@ export const productsRouter = createTRPCRouter({
         // Validate sort column for security
         const allowedColumns = [
           'name',
-          'price',
           'category',
           'status',
           'created_at',
@@ -136,7 +135,7 @@ export const productsRouter = createTRPCRouter({
         const productId = await generateUniqueProductId(ctx.env.DB);
 
         const { results } = await ctx.env.DB.prepare(
-          `INSERT INTO products (id, name, category, price, description, status) 
+          `INSERT INTO products (id, name, category, price_cents, description, status) 
            VALUES (?, ?, ?, ?, ?, ?) 
            RETURNING *`,
         )
@@ -144,7 +143,7 @@ export const productsRouter = createTRPCRouter({
             productId,
             validatedInput.name,
             validatedInput.category,
-            validatedInput.price,
+            validatedInput.price_cents,
             validatedInput.description || null,
             1, // Always create as active
           )
@@ -188,14 +187,14 @@ export const productsRouter = createTRPCRouter({
 
         const { results } = await ctx.env.DB.prepare(
           `UPDATE products 
-           SET name = ?, category = ?, price = ?, description = ?, status = ?, updated_at = unixepoch()
+           SET name = ?, category = ?, price_cents = ?, description = ?, status = ?, updated_at = unixepoch()
            WHERE id = ? 
            RETURNING *`,
         )
           .bind(
             validatedInput.name,
             validatedInput.category,
-            validatedInput.price,
+            validatedInput.price_cents,
             validatedInput.description || null,
             validatedInput.status,
             validatedInput.id,

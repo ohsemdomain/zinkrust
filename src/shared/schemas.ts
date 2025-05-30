@@ -6,15 +6,25 @@ export const createProductSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   category: z
     .number()
-    .refine((val) => Object.values(ProductCategory).includes(val as typeof ProductCategory[keyof typeof ProductCategory]), {
-      message: 'Invalid category',
-    }),
-  price: z
+    .refine(
+      (val) =>
+        Object.values(ProductCategory).includes(
+          val as (typeof ProductCategory)[keyof typeof ProductCategory],
+        ),
+      {
+        message: 'Invalid category',
+      },
+    ),
+  price_cents: z
     .union([z.number(), z.string()])
-    .transform((val) =>
-      typeof val === 'string' ? Number.parseFloat(val) : val,
-    )
-    .refine((val) => val > 0, { message: 'Price must be positive' }),
+    .transform((val) => {
+      const dollars = typeof val === 'string' ? Number.parseFloat(val) : val;
+      return Math.round(dollars * 100);
+    })
+    .refine((val) => val > 0, { message: 'Price must be positive' })
+    .refine((val) => Number.isInteger(val), {
+      message: 'Price must be a valid amount',
+    }),
   description: z.string().optional(),
 });
 
@@ -22,9 +32,15 @@ export const updateProductSchema = createProductSchema.extend({
   id: z.number().positive('Invalid product ID'),
   status: z
     .number()
-    .refine((val) => Object.values(ProductStatus).includes(val as typeof ProductStatus[keyof typeof ProductStatus]), {
-      message: 'Invalid status',
-    }),
+    .refine(
+      (val) =>
+        Object.values(ProductStatus).includes(
+          val as (typeof ProductStatus)[keyof typeof ProductStatus],
+        ),
+      {
+        message: 'Invalid status',
+      },
+    ),
 });
 
 export const paginationSchema = z.object({
@@ -35,7 +51,7 @@ export const paginationSchema = z.object({
 export const productFilterSchema = paginationSchema.extend({
   filter_by: z.enum(['active', 'inactive', 'all']).default('active'),
   sort_column: z
-    .enum(['name', 'price', 'category', 'status', 'created_at', 'updated_at'])
+    .enum(['name', 'category', 'status', 'created_at', 'updated_at'])
     .default('created_at'),
   sort_order: z.enum(['ASC', 'DESC']).default('DESC'),
 });

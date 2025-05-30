@@ -9,11 +9,7 @@ export const productSchema = z.object({
   id: z.number(),
   name: z.string(),
   category: z.number(),
-  price: z
-    .union([z.number(), z.string()])
-    .transform((val) =>
-      typeof val === 'string' ? Number.parseFloat(val) : val,
-    ),
+  price_cents: z.number().int().positive(),
   description: z.string().nullable(),
   status: z.number(),
   created_at: z.number(),

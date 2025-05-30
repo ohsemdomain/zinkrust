@@ -11,10 +11,11 @@ import {
 } from '@mantine/core';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useNotifications } from '~/contexts/NotificationContext';
-import { trpc } from '~/lib/trpc';
 import { useProductMutations } from '~/hooks/useProductMutations';
+import { trpc } from '~/lib/trpc';
 import { getCategoryName, getStatusText } from '~/utils/product.utils';
 import { ProductStatus } from '../../../shared/constants';
+import { PriceUtils } from '../../../shared/utils/price';
 
 export const Route = createFileRoute('/products/$id')({
   component: ProductDetail,
@@ -57,10 +58,7 @@ function ProductDetail() {
       id: product.id,
       name: product.name,
       category: product.category,
-      price:
-        typeof product.price === 'string'
-          ? Number.parseFloat(product.price)
-          : product.price,
+      price_cents: product.price_cents,
       description: product.description || undefined,
       status: newStatus,
     };
@@ -75,8 +73,8 @@ function ProductDetail() {
       onError: (err) => {
         console.error('Update status error:', err);
         const errorMessage =
-          (err as any)?.message ||
-          (err as any)?.data?.message ||
+          (err as unknown as Error)?.message ||
+          (err as { data?: { message?: string } })?.data?.message ||
           'Failed to update product status';
         showNotification('error', errorMessage);
       },
@@ -120,7 +118,8 @@ function ProductDetail() {
           </Grid.Col>
           <Grid.Col>
             <Text>
-              <strong>Price:</strong> ${product.price}
+              <strong>Price:</strong>{' '}
+              {PriceUtils.formatPrice(product.price_cents)}
             </Text>
           </Grid.Col>
           <Grid.Col>

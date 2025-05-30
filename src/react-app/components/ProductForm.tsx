@@ -8,9 +8,16 @@ import {
   Textarea,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useEffect } from 'react';
 import { ProductCategory } from '../../shared/constants';
 import type { CreateProduct } from '../../worker/schemas/products';
+
+// Form-specific type that works with dollars
+type ProductFormData = {
+  name: string;
+  category: number;
+  price: number; // dollars
+  description?: string;
+};
 
 interface ProductFormProps {
   initialValues?: Partial<CreateProduct>;
@@ -29,13 +36,12 @@ export function ProductForm({
   onCancel,
   submitLabel,
 }: ProductFormProps) {
-  const form = useForm<CreateProduct>({
+  const form = useForm<ProductFormData>({
     initialValues: {
-      name: '',
-      category: 0,
-      price: 0,
-      description: '',
-      ...initialValues,
+      name: initialValues?.name || '',
+      category: initialValues?.category || 0,
+      price: initialValues?.price_cents ? initialValues.price_cents / 100 : 0,
+      description: initialValues?.description || '',
     },
     validate: {
       name: (value) => (!value ? 'Name is required' : null),
@@ -44,20 +50,17 @@ export function ProductForm({
     },
   });
 
-  // Update form values when initialValues change (for edit mode)
-  useEffect(() => {
-    if (initialValues && Object.keys(initialValues).length > 0) {
-      form.setValues({
-        name: initialValues.name || '',
-        category: initialValues.category || 0,
-        price: initialValues.price || 0,
-        description: initialValues.description || '',
-      });
-    }
-  }, [initialValues, form]);
+  // Form initializes with correct values from initialValues prop
 
-  const handleSubmit = (values: CreateProduct) => {
-    onSubmit(values);
+  const handleSubmit = (values: ProductFormData) => {
+    // Convert dollars to the format expected by the schema
+    const submissionData = {
+      name: values.name,
+      category: values.category,
+      price_cents: values.price, // Schema will convert dollars to cents
+      description: values.description,
+    };
+    onSubmit(submissionData as CreateProduct);
   };
 
   const categoryOptions = [
@@ -97,7 +100,11 @@ export function ProductForm({
           decimalScale={2}
           fixedDecimalScale
           hideControls
-          {...form.getInputProps('price')}
+          value={form.values.price || 0}
+          onChange={(val) => {
+            form.setFieldValue('price', val || 0);
+          }}
+          error={form.errors.price}
         />
 
         <Textarea

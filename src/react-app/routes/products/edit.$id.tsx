@@ -93,12 +93,16 @@ function EditProduct() {
     <div className="p-2">
       <h2>Edit Product</h2>
       <ProductForm
-        initialValues={product ? {
-          name: product.name,
-          category: product.category,
-          price: product.price,
-          description: product.description || '',
-        } : undefined}
+        initialValues={
+          product
+            ? {
+                name: product.name,
+                category: product.category,
+                price_cents: product.price_cents,
+                description: product.description || '',
+              }
+            : undefined
+        }
         isSubmitting={updateMutation.isPending}
         error={
           updateMutation.error instanceof Error

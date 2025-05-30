@@ -17,13 +17,14 @@ import { z } from 'zod';
 import { trpc } from '~/lib/trpc';
 import { getCategoryName, getStatusText } from '~/utils/product.utils';
 import { ProductStatus } from '../../../shared/constants';
+import { PriceUtils } from '../../../shared/utils/price';
 
 const searchSchema = z.object({
   filter_by: z.enum(['active', 'inactive', 'all']).optional().default('active'),
   page: z.number().optional().default(0),
   per_page: z.number().optional().default(25),
   sort_column: z
-    .enum(['name', 'price', 'category', 'status', 'created_at', 'updated_at'])
+    .enum(['name', 'category', 'status', 'created_at', 'updated_at'])
     .optional()
     .default('created_at'),
   sort_order: z.enum(['ASC', 'DESC']).optional().default('DESC'),
@@ -159,8 +160,6 @@ function Products() {
             data={[
               { value: 'name-ASC', label: 'Name (A-Z)' },
               { value: 'name-DESC', label: 'Name (Z-A)' },
-              { value: 'price-ASC', label: 'Price (Low-High)' },
-              { value: 'price-DESC', label: 'Price (High-Low)' },
               { value: 'created_at-DESC', label: 'Newest First' },
               { value: 'created_at-ASC', label: 'Oldest First' },
             ]}
@@ -213,7 +212,8 @@ function Products() {
                   </Text>
 
                   <Text size="sm">
-                    <strong>Price:</strong> ${product.price}
+                    <strong>Price:</strong>{' '}
+                    {PriceUtils.formatPrice(product.price_cents)}
                   </Text>
 
                   <Badge
