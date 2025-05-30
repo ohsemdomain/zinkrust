@@ -20,7 +20,9 @@ export const CACHE_CONFIG = {
 
 export const RETRY_CONFIG = {
   MAX_RETRIES: 3,
-  RETRY_DELAY: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  RETRY_DELAY: (attemptIndex: number) =>
+    Math.min(1000 * 2 ** attemptIndex, 30000),
   MUTATION_RETRIES: 2,
-  MUTATION_RETRY_DELAY: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 10000),
+  MUTATION_RETRY_DELAY: (attemptIndex: number) =>
+    Math.min(1000 * 2 ** attemptIndex, 10000),
 } as const;

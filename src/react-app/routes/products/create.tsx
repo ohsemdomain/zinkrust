@@ -1,6 +1,9 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
+import { ProductForm } from '~/components/ProductForm';
+import { useNotifications } from '~/contexts/NotificationContext';
 import { trpc } from '~/lib/trpc';
+import { ProductStatus } from '../../../shared/constants';
 
 export const Route = createFileRoute('/products/create')({
   component: CreateProduct,
@@ -8,25 +11,31 @@ export const Route = createFileRoute('/products/create')({
 
 function CreateProduct() {
   const navigate = useNavigate();
+  const { showNotification } = useNotifications();
   const [formData, setFormData] = useState({
     name: '',
     category: 1,
     price: 0,
     description: '',
-    status: 1,
+    status: ProductStatus.ACTIVE,
   });
 
   const createMutation = trpc.products.create.useMutation({
     onSuccess: (result) => {
-      console.log('Created product:', result);
+      const statusText = result.status === ProductStatus.INACTIVE ? ' (inactive)' : '';
+      showNotification(
+        'success',
+        `Product "${result.name}" created successfully${statusText}`,
+      );
       navigate({ to: '/products' });
     },
     onError: (err) => {
       console.error('Create error:', err);
+      showNotification('error', err.message || 'Failed to create product');
     },
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!formData.name || formData.price <= 0) {
@@ -41,126 +50,25 @@ function CreateProduct() {
       status: formData.status,
     };
 
-    console.log('Sending payload:', payload);
     createMutation.mutate(payload);
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >,
-  ) => {
-    const { name, value, type } = e.target;
-
-    let convertedValue: string | number = value;
-
-    // Convert number inputs and specific fields that should be numbers
-    if (type === 'number' || name === 'category' || name === 'status') {
-      convertedValue = Number.parseInt(value) || 0;
-    } else if (name === 'price') {
-      convertedValue = Number.parseFloat(value) || 0;
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: convertedValue,
-    }));
   };
 
   return (
     <div className="p-2">
       <h2>Create New Product</h2>
-
-      {createMutation.error && (
-        <div
-          className="error-message"
-          style={{ color: 'red', marginBottom: '1rem' }}
-        >
-          Error: {createMutation.error instanceof Error ? createMutation.error.message : 'Failed to create product'}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="create-form">
-        <div className="form-group">
-          <label htmlFor="name">Product Name *</label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleInputChange}
-            required
-            placeholder="Enter product name"
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="category">Category</label>
-          <select
-            id="category"
-            name="category"
-            value={formData.category}
-            onChange={handleInputChange}
-          >
-            <option value={1}>Packaging</option>
-            <option value={2}>Label</option>
-            <option value={3}>Other</option>
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="price">Price *</label>
-          <input
-            type="number"
-            id="price"
-            name="price"
-            value={formData.price}
-            onChange={handleInputChange}
-            step="0.01"
-            min="0"
-            required
-            placeholder="0.00"
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="description">Description</label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
-            rows={3}
-            placeholder="Enter product description"
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="status">Status</label>
-          <select
-            id="status"
-            name="status"
-            value={formData.status}
-            onChange={handleInputChange}
-          >
-            <option value={1}>Active</option>
-            <option value={0}>Inactive</option>
-          </select>
-        </div>
-
-        <div className="form-actions">
-          <button type="submit" disabled={createMutation.isPending} className="btn-primary">
-            {createMutation.isPending ? 'Creating...' : 'Create Product'}
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate({ to: '/products' })}
-            className="btn-secondary"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
+      <ProductForm
+        formData={formData}
+        isSubmitting={createMutation.isPending}
+        error={
+          createMutation.error instanceof Error
+            ? createMutation.error.message
+            : null
+        }
+        onSubmit={handleSubmit}
+        onChange={setFormData}
+        onCancel={() => navigate({ to: '/products' })}
+        submitLabel="Create Product"
+      />
     </div>
   );
 }

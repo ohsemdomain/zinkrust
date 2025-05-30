@@ -1,46 +1,27 @@
 import { z } from 'zod';
-
-// Product categories enum
-export const ProductCategory = {
-  PACKAGING: 1,
-  LABEL: 2,
-  OTHER: 3,
-} as const;
-
-// Product status enum
-export const ProductStatus = {
-  INACTIVE: 0,
-  ACTIVE: 1,
-} as const;
+import type {
+  createProductSchema,
+  updateProductSchema,
+} from '../../shared/schemas';
 
 // Zod schemas
 export const productSchema = z.object({
   id: z.number(),
   name: z.string(),
   category: z.number(),
-  price: z.number(),
+  price: z
+    .union([z.number(), z.string()])
+    .transform((val) =>
+      typeof val === 'string' ? Number.parseFloat(val) : val,
+    ),
   description: z.string().nullable(),
   status: z.number(),
   created_at: z.number(),
   updated_at: z.number(),
 });
 
-export const createProductSchema = z.object({
-  name: z.string().min(1),
-  category: z.number().min(1).max(3),
-  price: z.number().positive(),
-  description: z.string().optional(),
-  status: z.number().min(0).max(1).default(1),
-});
-
-export const updateProductSchema = z.object({
-  id: z.number(),
-  name: z.string().min(1),
-  category: z.number().min(1).max(3),
-  price: z.number().positive(),
-  description: z.string().optional(),
-  status: z.number().min(0).max(1),
-});
+// Re-export shared schemas
+export { createProductSchema, updateProductSchema } from '../../shared/schemas';
 
 export const deleteProductSchema = z.object({
   id: z.number().positive(),

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { productFilterSchema } from '../../../shared/schemas';
 import {
   createProductSchema,
   deleteProductSchema,
@@ -11,12 +12,39 @@ import { DatabaseError, ValidationError } from '../types/errors';
 
 export const productsRouter = createTRPCRouter({
   getAll: publicProcedure
-    .output(z.array(productSchema))
-    .query(async ({ ctx }) => {
+    .input(productFilterSchema.optional())
+    .output(
+      z.object({
+        products: z.array(productSchema),
+        total: z.number(),
+        hasMore: z.boolean(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
       try {
+        const { limit = 50, offset = 0, status = 'active' } = input || {};
+        
+        // Build WHERE clause based on status filter
+        let whereClause = '';
+        if (status === 'active') {
+          whereClause = 'WHERE status = 1';
+        } else if (status === 'inactive') {
+          whereClause = 'WHERE status = 0';
+        }
+        // 'all' means no WHERE clause
+
+        // Get total count
+        const countResult = await ctx.env.DB.prepare(
+          `SELECT COUNT(*) as count FROM products ${whereClause}`,
+        ).first();
+        const total = (countResult?.count as number) || 0;
+
+        // Get paginated results
         const { results } = await ctx.env.DB.prepare(
-          'SELECT * FROM products WHERE status = 1 ORDER BY created_at DESC',
-        ).all();
+          `SELECT * FROM products ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+        )
+          .bind(limit, offset)
+          .all();
 
         // Validate each result against the schema
         const validatedResults = results.map((result: unknown) => {
@@ -28,7 +56,11 @@ export const productsRouter = createTRPCRouter({
           }
         });
 
-        return validatedResults;
+        return {
+          products: validatedResults,
+          total,
+          hasMore: offset + limit < total,
+        };
       } catch (error) {
         console.error('Database error:', error);
         if (error instanceof ValidationError) {
@@ -44,7 +76,7 @@ export const productsRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       try {
         const { results } = await ctx.env.DB.prepare(
-          'SELECT * FROM products WHERE id = ? AND status = 1',
+          'SELECT * FROM products WHERE id = ?',
         )
           .bind(input.id)
           .all();
@@ -178,8 +210,9 @@ export const productsRouter = createTRPCRouter({
           );
         }
 
+        // Soft delete by setting status to 0
         const { success } = await ctx.env.DB.prepare(
-          'DELETE FROM products WHERE id = ?',
+          'UPDATE products SET status = 0, updated_at = unixepoch() WHERE id = ?',
         )
           .bind(validatedInput.id)
           .run();

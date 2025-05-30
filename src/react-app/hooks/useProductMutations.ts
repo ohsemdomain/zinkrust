@@ -1,4 +1,3 @@
-import { queryClient } from '~/lib/query-client';
 import { trpc } from '~/lib/trpc';
 import type { Product } from '../../worker/schemas/products';
 
@@ -8,11 +7,12 @@ export function useProductMutations() {
   const createProduct = trpc.products.create.useMutation({
     onMutate: async (newProduct) => {
       await utils.products.getAll.cancel();
-      
+
       const previousProducts = utils.products.getAll.getData();
-      
+
+      const tempId = Math.floor(Math.random() * 100000000);
       const optimisticProduct: Product = {
-        id: Math.floor(Math.random() * 1000000),
+        id: tempId,
         name: newProduct.name,
         category: newProduct.category,
         price: newProduct.price,
@@ -22,10 +22,15 @@ export function useProductMutations() {
         updated_at: Math.floor(Date.now() / 1000),
       };
 
-      utils.products.getAll.setData(undefined, (old = []) => [
-        optimisticProduct,
-        ...old,
-      ]);
+      // Only update cache for 'all' or 'active' status filter
+      utils.products.getAll.setData(undefined, (old) => {
+        if (!old) return undefined;
+        return {
+          ...old,
+          products: [optimisticProduct, ...old.products],
+          total: old.total + 1,
+        };
+      });
 
       return { previousProducts };
     },
@@ -33,6 +38,9 @@ export function useProductMutations() {
       if (context?.previousProducts) {
         utils.products.getAll.setData(undefined, context.previousProducts);
       }
+    },
+    onSuccess: (data) => {
+      utils.products.getById.setData({ id: data.id }, data);
     },
     onSettled: () => {
       utils.products.getAll.invalidate();
@@ -43,22 +51,36 @@ export function useProductMutations() {
     onMutate: async (updatedProduct) => {
       await utils.products.getAll.cancel();
       await utils.products.getById.cancel({ id: updatedProduct.id });
-      
-      const previousProducts = utils.products.getAll.getData();
-      const previousProduct = utils.products.getById.getData({ id: updatedProduct.id });
 
-      utils.products.getAll.setData(undefined, (old = []) =>
-        old.map((product) =>
-          product.id === updatedProduct.id
-            ? { ...product, ...updatedProduct, updated_at: Math.floor(Date.now() / 1000) }
-            : product
-        )
-      );
+      const previousProducts = utils.products.getAll.getData();
+      const previousProduct = utils.products.getById.getData({
+        id: updatedProduct.id,
+      });
+
+      utils.products.getAll.setData(undefined, (old) => {
+        if (!old) return undefined;
+        return {
+          ...old,
+          products: old.products.map((product) =>
+            product.id === updatedProduct.id
+              ? {
+                  ...product,
+                  ...updatedProduct,
+                  updated_at: Math.floor(Date.now() / 1000),
+                }
+              : product,
+          ),
+        };
+      });
 
       if (previousProduct) {
         utils.products.getById.setData(
           { id: updatedProduct.id },
-          { ...previousProduct, ...updatedProduct, updated_at: Math.floor(Date.now() / 1000) }
+          {
+            ...previousProduct,
+            ...updatedProduct,
+            updated_at: Math.floor(Date.now() / 1000),
+          },
         );
       }
 
@@ -71,8 +93,13 @@ export function useProductMutations() {
       if (context?.previousProduct) {
         utils.products.getById.setData(
           { id: updatedProduct.id },
-          context.previousProduct
+          context.previousProduct,
         );
+      }
+    },
+    onSuccess: (data) => {
+      if (data) {
+        utils.products.getById.setData({ id: data.id }, data);
       }
     },
     onSettled: (_data, _error, variables) => {
@@ -85,13 +112,24 @@ export function useProductMutations() {
     onMutate: async (variables) => {
       await utils.products.getAll.cancel();
       await utils.products.getById.cancel({ id: variables.id });
-      
-      const previousProducts = utils.products.getAll.getData();
-      const previousProduct = utils.products.getById.getData({ id: variables.id });
 
-      utils.products.getAll.setData(undefined, (old = []) =>
-        old.filter((product) => product.id !== variables.id)
-      );
+      const previousProducts = utils.products.getAll.getData();
+      const previousProduct = utils.products.getById.getData({
+        id: variables.id,
+      });
+
+      // Note: This is now a soft delete (status = 0) on the backend
+      // Remove from active products view
+      utils.products.getAll.setData(undefined, (old) => {
+        if (!old) return undefined;
+        return {
+          ...old,
+          products: old.products.filter(
+            (product) => product.id !== variables.id,
+          ),
+          total: old.total - 1,
+        };
+      });
 
       utils.products.getById.setData({ id: variables.id }, undefined);
 
@@ -104,7 +142,7 @@ export function useProductMutations() {
       if (context?.previousProduct) {
         utils.products.getById.setData(
           { id: variables.id },
-          context.previousProduct
+          context.previousProduct,
         );
       }
     },

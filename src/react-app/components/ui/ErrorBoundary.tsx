@@ -29,7 +29,7 @@ export class ErrorBoundary extends Component<Props, State> {
     });
 
     console.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+
     if (import.meta.env.PROD) {
       // In production, you might want to send this to an error reporting service
       // reportError(error, errorInfo);
@@ -52,14 +52,14 @@ export class ErrorBoundary extends Component<Props, State> {
             <Title order={1} ta="center" c="red">
               Something went wrong
             </Title>
-            
+
             <Alert color="red" title="Error Details" variant="light">
               <Text size="sm">
                 {this.state.error?.message || 'An unexpected error occurred'}
               </Text>
             </Alert>
 
-            <Button 
+            <Button
               onClick={this.handleReset}
               variant="filled"
               color="blue"
@@ -71,7 +71,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
             {import.meta.env.DEV && this.state.errorInfo && (
               <Alert color="gray" title="Stack Trace" variant="light">
-                <Text size="xs" ff="monospace" style={{ whiteSpace: 'pre-wrap' }}>
+                <Text
+                  size="xs"
+                  ff="monospace"
+                  style={{ whiteSpace: 'pre-wrap' }}
+                >
                   {this.state.errorInfo.componentStack}
                 </Text>
               </Alert>

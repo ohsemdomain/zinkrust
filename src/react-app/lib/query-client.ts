@@ -22,7 +22,12 @@ export const queryClient = new QueryClient({
     mutations: {
       retry: (failureCount, error: unknown) => {
         const errorData = error as { data?: { httpStatus?: number } };
-        if (errorData?.data?.httpStatus && errorData.data.httpStatus >= 400 && errorData.data.httpStatus < 500) return false;
+        if (
+          errorData?.data?.httpStatus &&
+          errorData.data.httpStatus >= 400 &&
+          errorData.data.httpStatus < 500
+        )
+          return false;
         return failureCount < RETRY_CONFIG.MUTATION_RETRIES;
       },
       retryDelay: RETRY_CONFIG.MUTATION_RETRY_DELAY,

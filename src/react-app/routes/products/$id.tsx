@@ -10,7 +10,10 @@ import {
   Title,
 } from '@mantine/core';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useNotifications } from '~/contexts/NotificationContext';
 import { trpc } from '~/lib/trpc';
+import { getCategoryName, getStatusText } from '~/utils/product.utils';
+import { ProductStatus } from '../../../shared/constants';
 
 export const Route = createFileRoute('/products/$id')({
   component: ProductDetail,
@@ -19,36 +22,26 @@ export const Route = createFileRoute('/products/$id')({
 function ProductDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const { showNotification } = useNotifications();
   const {
     data: product,
     isLoading: loading,
     error: queryError,
   } = trpc.products.getById.useQuery(
     { id: Number.parseInt(id) },
-    { enabled: !!id }
+    { enabled: !!id },
   );
-  
-  const error = queryError instanceof Error ? queryError.message : null;
 
-  const getCategoryName = (category: number) => {
-    switch (category) {
-      case 1:
-        return 'Packaging';
-      case 2:
-        return 'Label';
-      case 3:
-        return 'Other';
-      default:
-        return 'Unknown';
-    }
-  };
+  const error = queryError instanceof Error ? queryError.message : null;
 
   const deleteMutation = trpc.products.delete.useMutation({
     onSuccess: () => {
+      showNotification('success', 'Product marked as inactive');
       navigate({ to: '/products' });
     },
     onError: (err) => {
       console.error('Delete error:', err);
+      showNotification('error', err.message || 'Failed to delete product');
     },
   });
 
@@ -56,7 +49,7 @@ function ProductDetail() {
     if (!product) return;
 
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
+      `Are you sure you want to mark "${product.name}" as inactive? You can view it later in the inactive products list.`,
     );
 
     if (!confirmed) return;
@@ -106,8 +99,7 @@ function ProductDetail() {
           </Grid.Col>
           <Grid.Col>
             <Text>
-              <strong>Status:</strong>{' '}
-              {product.status === 1 ? 'Active' : 'Inactive'}
+              <strong>Status:</strong> {getStatusText(product.status)}
             </Text>
           </Grid.Col>
           <Grid.Col>
@@ -136,9 +128,17 @@ function ProductDetail() {
           <Link to="/products/edit/$id" params={{ id: product.id.toString() }}>
             <Button>Edit Product</Button>
           </Link>
-          <Button color="red" onClick={handleDelete} disabled={deleteMutation.isPending}>
-            {deleteMutation.isPending ? 'Deleting...' : 'Delete Product'}
-          </Button>
+          {product.status === ProductStatus.ACTIVE ? (
+            <Button
+              color="red"
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Updating...' : 'Mark as Inactive'}
+            </Button>
+          ) : (
+            <Text c="dimmed" size="sm">Product is inactive</Text>
+          )}
         </Group>
       </Stack>
     </Container>
