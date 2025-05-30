@@ -7,28 +7,44 @@ import {
   Grid,
   Group,
   Loader,
-  SegmentedControl,
+  Select,
   Stack,
   Text,
   Title,
 } from '@mantine/core';
-import { Link, createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
+import { z } from 'zod';
 import { trpc } from '~/lib/trpc';
 import { getCategoryName, getStatusText } from '~/utils/product.utils';
 import { ProductStatus } from '../../../shared/constants';
 
+const searchSchema = z.object({
+  filter_by: z.enum(['active', 'inactive', 'all']).optional().default('active'),
+  page: z.number().optional().default(0),
+  per_page: z.number().optional().default(25),
+  sort_column: z.enum(['name', 'price', 'category', 'status', 'created_at', 'updated_at']).optional().default('created_at'),
+  sort_order: z.enum(['ASC', 'DESC']).optional().default('DESC'),
+});
+
 export const Route = createFileRoute('/products/')({
+  validateSearch: searchSchema,
   component: Products,
 });
 
 function Products() {
-  const [page, setPage] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | 'all'>('active');
-  const limit = 12;
+  const navigate = useNavigate();
+  const search = Route.useSearch();
+  
+  const {
+    filter_by = 'active',
+    page = 0,
+    per_page = 25,
+    sort_column = 'created_at',
+    sort_order = 'DESC'
+  } = search;
 
   const { data, isLoading, error, refetch } = trpc.products.getAll.useQuery(
-    { limit, offset: page * limit, status: statusFilter },
+    { filter_by, page, per_page, sort_column, sort_order },
     {
       staleTime: 5 * 60 * 1000,
       gcTime: 10 * 60 * 1000,
@@ -38,16 +54,34 @@ function Products() {
     },
   );
   
-  // Reset page when status filter changes
-  const handleStatusFilterChange = (value: string) => {
-    setStatusFilter(value as 'active' | 'inactive' | 'all');
-    setPage(0);
+  const handleFilterChange = (newFilter: 'active' | 'inactive' | 'all') => {
+    navigate({
+      search: { ...search, filter_by: newFilter, page: 0 },
+    });
+  };
+
+  const handlePageChange = (newPage: number) => {
+    navigate({
+      search: { ...search, page: newPage },
+    });
+  };
+
+  const handleSortChange = (column: string, order: 'ASC' | 'DESC') => {
+    navigate({
+      search: { 
+        ...search, 
+        sort_column: column as any, 
+        sort_order: order,
+        page: 0 
+      },
+    });
   };
 
   const products = data?.products || [];
   const total = data?.total || 0;
   const hasMore = data?.hasMore || false;
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = data?.totalPages || 0;
+  const currentPage = data?.currentPage || 0;
 
   if (isLoading) {
     return (
@@ -95,25 +129,46 @@ function Products() {
         </Grid>
         
         <Group>
-          <Text size="sm" fw={500}>Show:</Text>
-          <SegmentedControl
-            value={statusFilter}
-            onChange={handleStatusFilterChange}
+          <Select
+            label="Filter Products"
+            value={filter_by}
+            onChange={(value) => handleFilterChange(value as 'active' | 'inactive' | 'all')}
             data={[
-              { label: 'Active', value: 'active' },
-              { label: 'Inactive', value: 'inactive' },
-              { label: 'All', value: 'all' },
+              { value: 'active', label: 'Active Products' },
+              { value: 'inactive', label: 'Inactive Products' },
+              { value: 'all', label: 'All Products' },
             ]}
+            style={{ minWidth: 200 }}
+          />
+          <Select
+            label="Sort By"
+            value={`${sort_column}-${sort_order}`}
+            onChange={(value) => {
+              if (value) {
+                const [column, order] = value.split('-');
+                handleSortChange(column, order as 'ASC' | 'DESC');
+              }
+            }}
+            data={[
+              { value: 'name-ASC', label: 'Name (A-Z)' },
+              { value: 'name-DESC', label: 'Name (Z-A)' },
+              { value: 'price-ASC', label: 'Price (Low-High)' },
+              { value: 'price-DESC', label: 'Price (High-Low)' },
+              { value: 'created_at-DESC', label: 'Newest First' },
+              { value: 'created_at-ASC', label: 'Oldest First' },
+            ]}
+            style={{ minWidth: 200 }}
           />
         </Group>
       </Stack>
+
       {products.length === 0 ? (
         <Alert variant="light" color="blue" title="No Products Found">
           <Stack gap="sm">
             <Text size="sm">
-              {statusFilter === 'active' && 'No active products found.'}
-              {statusFilter === 'inactive' && 'No inactive products found.'}
-              {statusFilter === 'all' && 'No products have been created yet.'}
+              {filter_by === 'active' && 'No active products found.'}
+              {filter_by === 'inactive' && 'No inactive products found.'}
+              {filter_by === 'all' && 'No products have been created yet.'}
             </Text>
             <Button
               component={Link}
@@ -179,17 +234,17 @@ function Products() {
         <Group justify="center" mt="xl">
           <Button
             variant="light"
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={page === 0}
+            onClick={() => handlePageChange(Math.max(0, currentPage - 1))}
+            disabled={currentPage === 0}
           >
             Previous
           </Button>
           <Text size="sm">
-            Page {page + 1} of {totalPages}
+            Page {currentPage + 1} of {totalPages}
           </Text>
           <Button
             variant="light"
-            onClick={() => setPage((p) => p + 1)}
+            onClick={() => handlePageChange(currentPage + 1)}
             disabled={!hasMore}
           >
             Next

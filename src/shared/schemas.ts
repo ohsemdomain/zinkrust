@@ -16,12 +16,6 @@ export const createProductSchema = z.object({
     )
     .refine((val) => val > 0, { message: 'Price must be positive' }),
   description: z.string().optional(),
-  status: z
-    .number()
-    .refine((val) => Object.values(ProductStatus).includes(val), {
-      message: 'Invalid status',
-    })
-    .default(ProductStatus.ACTIVE),
 });
 
 export const updateProductSchema = createProductSchema.extend({
@@ -29,12 +23,14 @@ export const updateProductSchema = createProductSchema.extend({
 });
 
 export const paginationSchema = z.object({
-  limit: z.number().positive().default(50),
-  offset: z.number().min(0).default(0),
+  per_page: z.number().positive().max(100).default(25),
+  page: z.number().min(0).default(0),
 });
 
 export const productFilterSchema = paginationSchema.extend({
-  status: z.enum(['active', 'inactive', 'all']).optional().default('active'),
+  filter_by: z.enum(['active', 'inactive', 'all']).default('active'),
+  sort_column: z.enum(['name', 'price', 'category', 'status', 'created_at', 'updated_at']).default('created_at'),
+  sort_order: z.enum(['ASC', 'DESC']).default('DESC'),
 });
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;

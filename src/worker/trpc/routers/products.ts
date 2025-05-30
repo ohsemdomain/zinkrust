@@ -18,20 +18,36 @@ export const productsRouter = createTRPCRouter({
         products: z.array(productSchema),
         total: z.number(),
         hasMore: z.boolean(),
+        currentPage: z.number(),
+        totalPages: z.number(),
+        perPage: z.number(),
       }),
     )
     .query(async ({ ctx, input }) => {
       try {
-        const { limit = 50, offset = 0, status = 'active' } = input || {};
+        const { 
+          per_page = 25, 
+          page = 0, 
+          filter_by = 'active',
+          sort_column = 'created_at',
+          sort_order = 'DESC'
+        } = input || {};
+        
+        const offset = page * per_page;
         
         // Build WHERE clause based on status filter
         let whereClause = '';
-        if (status === 'active') {
+        if (filter_by === 'active') {
           whereClause = 'WHERE status = 1';
-        } else if (status === 'inactive') {
+        } else if (filter_by === 'inactive') {
           whereClause = 'WHERE status = 0';
         }
         // 'all' means no WHERE clause
+
+        // Validate sort column for security
+        const allowedColumns = ['name', 'price', 'category', 'status', 'created_at', 'updated_at'];
+        const safeColumn = allowedColumns.includes(sort_column) ? sort_column : 'created_at';
+        const safeOrder = sort_order === 'ASC' ? 'ASC' : 'DESC';
 
         // Get total count
         const countResult = await ctx.env.DB.prepare(
@@ -39,11 +55,11 @@ export const productsRouter = createTRPCRouter({
         ).first();
         const total = (countResult?.count as number) || 0;
 
-        // Get paginated results
+        // Get paginated results with sorting
         const { results } = await ctx.env.DB.prepare(
-          `SELECT * FROM products ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+          `SELECT * FROM products ${whereClause} ORDER BY ${safeColumn} ${safeOrder} LIMIT ? OFFSET ?`,
         )
-          .bind(limit, offset)
+          .bind(per_page, offset)
           .all();
 
         // Validate each result against the schema
@@ -59,7 +75,10 @@ export const productsRouter = createTRPCRouter({
         return {
           products: validatedResults,
           total,
-          hasMore: offset + limit < total,
+          hasMore: offset + per_page < total,
+          currentPage: page,
+          totalPages: Math.ceil(total / per_page),
+          perPage: per_page,
         };
       } catch (error) {
         console.error('Database error:', error);
@@ -118,7 +137,7 @@ export const productsRouter = createTRPCRouter({
             validatedInput.category,
             validatedInput.price,
             validatedInput.description || null,
-            validatedInput.status || 1,
+            1, // Always create as active
           )
           .all();
 

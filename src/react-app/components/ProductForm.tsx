@@ -1,129 +1,117 @@
-import type { ChangeEvent, FormEvent } from 'react';
-import { ProductCategory, ProductStatus } from '../../shared/constants';
-import type {
-  CreateProduct,
-  UpdateProduct,
-} from '../../worker/schemas/products';
-
-type FormData = Omit<CreateProduct, 'status'> & { status?: number };
+import { Button, Group, NumberInput, Select, Stack, TextInput, Textarea } from '@mantine/core';
+import { useForm } from '@mantine/form';
+import { useEffect } from 'react';
+import { ProductCategory } from '../../shared/constants';
+import type { CreateProduct } from '../../worker/schemas/products';
 
 interface ProductFormProps {
-  formData: FormData;
+  initialValues?: Partial<CreateProduct>;
   isSubmitting: boolean;
   error: string | null;
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
-  onChange: (data: FormData) => void;
+  onSubmit: (values: CreateProduct) => void;
   onCancel: () => void;
   submitLabel: string;
 }
 
 export function ProductForm({
-  formData,
+  initialValues = {},
   isSubmitting,
   error,
   onSubmit,
-  onChange,
   onCancel,
   submitLabel,
 }: ProductFormProps) {
-  const handleInputChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    let convertedValue: string | number = value;
+  const form = useForm<CreateProduct>({
+    initialValues: {
+      name: '',
+      category: 0,
+      price: 0,
+      description: '',
+      ...initialValues,
+    },
+    validate: {
+      name: (value) => (!value ? 'Name is required' : null),
+      category: (value) => (!value ? 'Category is required' : null),
+      price: (value) => (value <= 0 ? 'Price must be positive' : null),
+    },
+  });
 
-    if (name === 'category' || name === 'status') {
-      convertedValue = Number.parseInt(value) || 0;
-    } else if (name === 'price') {
-      convertedValue = Number.parseFloat(value) || 0;
+  // Update form values when initialValues change (for edit mode)
+  useEffect(() => {
+    if (initialValues && Object.keys(initialValues).length > 0) {
+      form.setValues({
+        name: initialValues.name || '',
+        category: initialValues.category || 0,
+        price: initialValues.price || 0,
+        description: initialValues.description || '',
+      });
     }
+  }, [initialValues]);
 
-    onChange({
-      ...formData,
-      [name]: convertedValue,
-    });
+  const handleSubmit = (values: CreateProduct) => {
+    onSubmit(values);
   };
 
+  const categoryOptions = [
+    { value: String(ProductCategory.PACKAGING), label: 'Packaging' },
+    { value: String(ProductCategory.LABEL), label: 'Label' },
+    { value: String(ProductCategory.OTHER), label: 'Other' },
+  ];
+
   return (
-    <form onSubmit={onSubmit}>
-      <div>
-        <label htmlFor="name">Name:</label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          value={formData.name}
-          onChange={handleInputChange}
+    <form onSubmit={form.onSubmit(handleSubmit)}>
+      <Stack gap="md">
+        <TextInput
+          label="Name"
+          placeholder="Enter product name"
           required
+          {...form.getInputProps('name')}
         />
-      </div>
 
-      <div>
-        <label htmlFor="category">Category:</label>
-        <select
-          id="category"
-          name="category"
-          value={formData.category}
-          onChange={handleInputChange}
+        <Select
+          label="Category"
+          placeholder="Select a category"
           required
-        >
-          <option value="">Select a category</option>
-          <option value={ProductCategory.PACKAGING}>Packaging</option>
-          <option value={ProductCategory.LABEL}>Label</option>
-          <option value={ProductCategory.OTHER}>Other</option>
-        </select>
-      </div>
-
-      <div>
-        <label htmlFor="price">Price:</label>
-        <input
-          type="number"
-          id="price"
-          name="price"
-          value={formData.price}
-          onChange={handleInputChange}
-          step="0.01"
-          min="0"
-          required
+          data={categoryOptions}
+          value={String(form.values.category || '')}
+          onChange={(value) => form.setFieldValue('category', Number(value) || 0)}
+          error={form.errors.category}
         />
-      </div>
 
-      <div>
-        <label htmlFor="description">Description:</label>
-        <textarea
-          id="description"
-          name="description"
-          value={formData.description || ''}
-          onChange={handleInputChange}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="status">Status:</label>
-        <select
-          id="status"
-          name="status"
-          value={formData.status ?? ProductStatus.ACTIVE}
-          onChange={handleInputChange}
+        <NumberInput
+          label="Price"
+          placeholder="Enter price"
           required
-        >
-          <option value={ProductStatus.ACTIVE}>Active</option>
-          <option value={ProductStatus.INACTIVE}>Inactive</option>
-        </select>
-      </div>
+          min={0}
+          step={0.01}
+          decimalScale={2}
+          fixedDecimalScale
+          hideControls
+          {...form.getInputProps('price')}
+        />
 
-      {error && (
-        <div style={{ color: 'red', marginTop: '10px' }}>Error: {error}</div>
-      )}
+        <Textarea
+          label="Description"
+          placeholder="Enter product description (optional)"
+          autosize
+          minRows={3}
+          maxRows={6}
+          {...form.getInputProps('description')}
+        />
 
-      <div className="form-actions">
-        <button type="submit" disabled={isSubmitting} className="btn-primary">
-          {isSubmitting ? 'Submitting...' : submitLabel}
-        </button>
-        <button type="button" onClick={onCancel} className="btn-secondary">
-          Cancel
-        </button>
-      </div>
+        {error && (
+          <div style={{ color: 'red' }}>Error: {error}</div>
+        )}
+
+        <Group>
+          <Button type="submit" loading={isSubmitting}>
+            {submitLabel}
+          </Button>
+          <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
+            Cancel
+          </Button>
+        </Group>
+      </Stack>
     </form>
   );
 }

@@ -1,10 +1,10 @@
 import { Container, Loader, Stack } from '@mantine/core';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
 import { ProductForm } from '~/components/ProductForm';
 import { useNotifications } from '~/contexts/NotificationContext';
 import { trpc } from '~/lib/trpc';
-import { ProductStatus } from '../../../shared/constants';
+import { useProductMutations } from '~/hooks/useProductMutations';
+import type { CreateProduct } from '../../../worker/schemas/products';
 
 export const Route = createFileRoute('/products/edit/$id')({
   component: EditProduct,
@@ -14,13 +14,6 @@ function EditProduct() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const { showNotification } = useNotifications();
-  const [formData, setFormData] = useState({
-    name: '',
-    category: 1,
-    price: 0,
-    description: '',
-    status: ProductStatus.ACTIVE,
-  });
 
   const {
     data: product,
@@ -31,47 +24,36 @@ function EditProduct() {
     { enabled: !!id },
   );
 
-  const updateMutation = trpc.products.update.useMutation({
-    onSuccess: (result) => {
-      showNotification(
-        'success',
-        `Product "${result.name}" updated successfully`,
-      );
-      navigate({ to: '/products/$id', params: { id: result.id.toString() } });
-    },
-    onError: (err) => {
-      console.error('Update error:', err);
-      showNotification('error', err.message || 'Failed to update product');
-    },
-  });
-
-  // Pre-populate form when product data loads
-  useEffect(() => {
-    if (product) {
-      setFormData({
-        name: product.name,
-        category: product.category,
-        price: product.price,
-        description: product.description || '',
-        status: product.status,
+  const { updateProduct } = useProductMutations();
+  
+  const updateMutation = {
+    ...updateProduct,
+    mutate: (data: any) => {
+      updateProduct.mutate(data, {
+        onSuccess: (result) => {
+          showNotification(
+            'success',
+            `Product "${result.name}" updated successfully`,
+          );
+          navigate({ to: '/products/$id', params: { id: result.id.toString() } });
+        },
+        onError: (err) => {
+          console.error('Update error:', err);
+          showNotification('error', err.message || 'Failed to update product');
+        },
       });
-    }
-  }, [product]);
+    },
+    isPending: updateProduct.isPending,
+    error: updateProduct.error,
+  };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
 
-    if (!formData.name || formData.price <= 0 || !product) {
-      return;
-    }
-
+  const handleSubmit = (values: CreateProduct) => {
+    if (!product) return;
+    
     const payload = {
       id: product.id,
-      name: formData.name,
-      category: formData.category,
-      price: formData.price,
-      description: formData.description || undefined,
-      status: formData.status,
+      ...values,
     };
 
     updateMutation.mutate(payload);
@@ -105,7 +87,12 @@ function EditProduct() {
     <div className="p-2">
       <h2>Edit Product</h2>
       <ProductForm
-        formData={formData}
+        initialValues={{
+          name: product.name,
+          category: product.category,
+          price: product.price,
+          description: product.description || '',
+        }}
         isSubmitting={updateMutation.isPending}
         error={
           updateMutation.error instanceof Error
@@ -113,7 +100,6 @@ function EditProduct() {
             : null
         }
         onSubmit={handleSubmit}
-        onChange={setFormData}
         onCancel={() =>
           navigate({
             to: '/products/$id',

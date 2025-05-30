@@ -1,9 +1,8 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
 import { ProductForm } from '~/components/ProductForm';
 import { useNotifications } from '~/contexts/NotificationContext';
-import { trpc } from '~/lib/trpc';
-import { ProductStatus } from '../../../shared/constants';
+import { useProductMutations } from '~/hooks/useProductMutations';
+import type { CreateProduct } from '../../../worker/schemas/products';
 
 export const Route = createFileRoute('/products/create')({
   component: CreateProduct,
@@ -12,52 +11,38 @@ export const Route = createFileRoute('/products/create')({
 function CreateProduct() {
   const navigate = useNavigate();
   const { showNotification } = useNotifications();
-  const [formData, setFormData] = useState({
-    name: '',
-    category: 1,
-    price: 0,
-    description: '',
-    status: ProductStatus.ACTIVE,
-  });
 
-  const createMutation = trpc.products.create.useMutation({
-    onSuccess: (result) => {
-      const statusText = result.status === ProductStatus.INACTIVE ? ' (inactive)' : '';
-      showNotification(
-        'success',
-        `Product "${result.name}" created successfully${statusText}`,
-      );
-      navigate({ to: '/products' });
+  const { createProduct } = useProductMutations();
+  
+  const createMutation = {
+    ...createProduct,
+    mutate: (data: any) => {
+      createProduct.mutate(data, {
+        onSuccess: (result) => {
+          showNotification(
+            'success',
+            `Product "${result.name}" created successfully`,
+          );
+          navigate({ to: '/products' });
+        },
+        onError: (err) => {
+          console.error('Create error:', err);
+          showNotification('error', err.message || 'Failed to create product');
+        },
+      });
     },
-    onError: (err) => {
-      console.error('Create error:', err);
-      showNotification('error', err.message || 'Failed to create product');
-    },
-  });
+    isPending: createProduct.isPending,
+    error: createProduct.error,
+  };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    if (!formData.name || formData.price <= 0) {
-      return;
-    }
-
-    const payload = {
-      name: formData.name,
-      category: formData.category,
-      price: formData.price,
-      description: formData.description || undefined,
-      status: formData.status,
-    };
-
-    createMutation.mutate(payload);
+  const handleSubmit = (values: CreateProduct) => {
+    createMutation.mutate(values);
   };
 
   return (
     <div className="p-2">
       <h2>Create New Product</h2>
       <ProductForm
-        formData={formData}
         isSubmitting={createMutation.isPending}
         error={
           createMutation.error instanceof Error
@@ -65,7 +50,6 @@ function CreateProduct() {
             : null
         }
         onSubmit={handleSubmit}
-        onChange={setFormData}
         onCancel={() => navigate({ to: '/products' })}
         submitLabel="Create Product"
       />

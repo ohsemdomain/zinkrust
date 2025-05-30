@@ -8,8 +8,6 @@ export function useProductMutations() {
     onMutate: async (newProduct) => {
       await utils.products.getAll.cancel();
 
-      const previousProducts = utils.products.getAll.getData();
-
       const tempId = Math.floor(Math.random() * 100000000);
       const optimisticProduct: Product = {
         id: tempId,
@@ -17,26 +15,65 @@ export function useProductMutations() {
         category: newProduct.category,
         price: newProduct.price,
         description: newProduct.description || null,
-        status: newProduct.status || 1,
+        status: 1, // Always create as active
         created_at: Math.floor(Date.now() / 1000),
         updated_at: Math.floor(Date.now() / 1000),
       };
 
-      // Only update cache for 'all' or 'active' status filter
-      utils.products.getAll.setData(undefined, (old) => {
-        if (!old) return undefined;
-        return {
-          ...old,
-          products: [optimisticProduct, ...old.products],
-          total: old.total + 1,
-        };
-      });
+      const previousCaches: Record<string, any> = {};
+      
+      // Update caches for all relevant filter combinations
+      const filters = ['all', 'active', 'inactive'];
+      const sortOrders = [
+        { sort_column: 'created_at', sort_order: 'DESC' },
+        { sort_column: 'name', sort_order: 'ASC' },
+        { sort_column: 'price', sort_order: 'ASC' },
+      ];
+      
+      for (const filter_by of filters) {
+        for (const sortConfig of sortOrders) {
+          // Check multiple pages
+          for (let page = 0; page < 3; page++) {
+            const cacheKey = { 
+              filter_by, 
+              page, 
+              per_page: 25, 
+              sort_column: sortConfig.sort_column,
+              sort_order: sortConfig.sort_order
+            };
+            const currentData = utils.products.getAll.getData(cacheKey);
+            
+            if (currentData) {
+              const cacheKeyStr = `${filter_by}-${sortConfig.sort_column}-${sortConfig.sort_order}-${page}`;
+              previousCaches[cacheKeyStr] = { data: currentData, key: cacheKey };
+              
+              // Only update first page with new product if sorting by created_at DESC (newest first)
+              // Since all new products are active, only update 'all' and 'active' filters
+              if (page === 0 && sortConfig.sort_column === 'created_at' && sortConfig.sort_order === 'DESC') {
+                const shouldAdd = filter_by === 'all' || filter_by === 'active';
+                  
+                if (shouldAdd) {
+                  utils.products.getAll.setData(cacheKey, {
+                    ...currentData,
+                    products: [optimisticProduct, ...currentData.products],
+                    total: currentData.total + 1,
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
 
-      return { previousProducts };
+      return { previousCaches };
     },
     onError: (_err, _newProduct, context) => {
-      if (context?.previousProducts) {
-        utils.products.getAll.setData(undefined, context.previousProducts);
+      if (context?.previousCaches) {
+        // Restore all cached queries
+        for (const cache of Object.values(context.previousCaches)) {
+          const { data, key } = cache as { data: any; key: any };
+          utils.products.getAll.setData(key, data);
+        }
       }
     },
     onSuccess: (data) => {
@@ -52,43 +89,102 @@ export function useProductMutations() {
       await utils.products.getAll.cancel();
       await utils.products.getById.cancel({ id: updatedProduct.id });
 
-      const previousProducts = utils.products.getAll.getData();
       const previousProduct = utils.products.getById.getData({
         id: updatedProduct.id,
       });
+      
+      const previousCaches: Record<string, any> = {};
+      const updatedProductData = previousProduct ? {
+        ...previousProduct,
+        ...updatedProduct,
+        updated_at: Math.floor(Date.now() / 1000),
+      } : null;
 
-      utils.products.getAll.setData(undefined, (old) => {
-        if (!old) return undefined;
-        return {
-          ...old,
-          products: old.products.map((product) =>
-            product.id === updatedProduct.id
-              ? {
-                  ...product,
-                  ...updatedProduct,
-                  updated_at: Math.floor(Date.now() / 1000),
+      // Update caches for all relevant filter combinations
+      const filters = ['all', 'active', 'inactive'];
+      const sortOrders = [
+        { sort_column: 'created_at', sort_order: 'DESC' },
+        { sort_column: 'name', sort_order: 'ASC' },
+        { sort_column: 'price', sort_order: 'ASC' },
+      ];
+      
+      for (const filter_by of filters) {
+        for (const sortConfig of sortOrders) {
+          // Check multiple pages
+          for (let page = 0; page < 3; page++) {
+            const cacheKey = { 
+              filter_by, 
+              page, 
+              per_page: 25, 
+              sort_column: sortConfig.sort_column,
+              sort_order: sortConfig.sort_order
+            };
+            const currentData = utils.products.getAll.getData(cacheKey);
+            
+            if (currentData) {
+              const cacheKeyStr = `${filter_by}-${sortConfig.sort_column}-${sortConfig.sort_order}-${page}`;
+              previousCaches[cacheKeyStr] = { data: currentData, key: cacheKey };
+              
+              const productIndex = currentData.products.findIndex(p => p.id === updatedProduct.id);
+              
+              if (productIndex !== -1) {
+                // Product exists in this cache
+                const shouldRemove = 
+                  (filter_by === 'active' && updatedProduct.status === 0) ||
+                  (filter_by === 'inactive' && updatedProduct.status === 1);
+                  
+                if (shouldRemove) {
+                  // Remove from this cache
+                  utils.products.getAll.setData(cacheKey, {
+                    ...currentData,
+                    products: currentData.products.filter(p => p.id !== updatedProduct.id),
+                    total: currentData.total - 1,
+                  });
+                } else {
+                  // Update in this cache
+                  utils.products.getAll.setData(cacheKey, {
+                    ...currentData,
+                    products: currentData.products.map((product) =>
+                      product.id === updatedProduct.id ? updatedProductData! : product
+                    ),
+                  });
                 }
-              : product,
-          ),
-        };
-      });
+              } else if (page === 0 && sortConfig.sort_column === 'created_at' && sortConfig.sort_order === 'DESC') {
+                // Product doesn't exist in this cache, check if it should be added (only on first page of newest first)
+                const shouldAdd = 
+                  (filter_by === 'all') ||
+                  (filter_by === 'active' && updatedProduct.status === 1) ||
+                  (filter_by === 'inactive' && updatedProduct.status === 0);
+                  
+                if (shouldAdd && updatedProductData) {
+                  utils.products.getAll.setData(cacheKey, {
+                    ...currentData,
+                    products: [updatedProductData, ...currentData.products],
+                    total: currentData.total + 1,
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
 
       if (previousProduct) {
         utils.products.getById.setData(
           { id: updatedProduct.id },
-          {
-            ...previousProduct,
-            ...updatedProduct,
-            updated_at: Math.floor(Date.now() / 1000),
-          },
+          updatedProductData!,
         );
       }
 
-      return { previousProducts, previousProduct };
+      return { previousCaches, previousProduct };
     },
     onError: (_err, updatedProduct, context) => {
-      if (context?.previousProducts) {
-        utils.products.getAll.setData(undefined, context.previousProducts);
+      if (context?.previousCaches) {
+        // Restore all cached queries
+        for (const cache of Object.values(context.previousCaches)) {
+          const { data, key } = cache as { data: any; key: any };
+          utils.products.getAll.setData(key, data);
+        }
       }
       if (context?.previousProduct) {
         utils.products.getById.setData(
@@ -113,31 +209,84 @@ export function useProductMutations() {
       await utils.products.getAll.cancel();
       await utils.products.getById.cancel({ id: variables.id });
 
-      const previousProducts = utils.products.getAll.getData();
       const previousProduct = utils.products.getById.getData({
         id: variables.id,
       });
+      
+      const previousCaches: Record<string, any> = {};
 
       // Note: This is now a soft delete (status = 0) on the backend
-      // Remove from active products view
-      utils.products.getAll.setData(undefined, (old) => {
-        if (!old) return undefined;
-        return {
-          ...old,
-          products: old.products.filter(
-            (product) => product.id !== variables.id,
-          ),
-          total: old.total - 1,
-        };
-      });
+      // Update caches for all relevant filter combinations
+      const filters = ['all', 'active', 'inactive'];
+      const sortOrders = [
+        { sort_column: 'created_at', sort_order: 'DESC' },
+        { sort_column: 'name', sort_order: 'ASC' },
+        { sort_column: 'price', sort_order: 'ASC' },
+      ];
+      
+      for (const filter_by of filters) {
+        for (const sortConfig of sortOrders) {
+          // Check multiple pages
+          for (let page = 0; page < 3; page++) {
+            const cacheKey = { 
+              filter_by, 
+              page, 
+              per_page: 25, 
+              sort_column: sortConfig.sort_column,
+              sort_order: sortConfig.sort_order
+            };
+            const currentData = utils.products.getAll.getData(cacheKey);
+            
+            if (currentData) {
+              const cacheKeyStr = `${filter_by}-${sortConfig.sort_column}-${sortConfig.sort_order}-${page}`;
+              previousCaches[cacheKeyStr] = { data: currentData, key: cacheKey };
+              
+              const productIndex = currentData.products.findIndex(p => p.id === variables.id);
+              
+              if (productIndex !== -1) {
+                if (filter_by === 'active') {
+                  // Remove from active view
+                  utils.products.getAll.setData(cacheKey, {
+                    ...currentData,
+                    products: currentData.products.filter(p => p.id !== variables.id),
+                    total: currentData.total - 1,
+                  });
+                } else if (filter_by === 'inactive') {
+                  // Should not be in inactive view yet
+                } else if (filter_by === 'all') {
+                  // Update status in all view
+                  utils.products.getAll.setData(cacheKey, {
+                    ...currentData,
+                    products: currentData.products.map(p =>
+                      p.id === variables.id ? { ...p, status: 0 } : p
+                    ),
+                  });
+                }
+              } else if (filter_by === 'inactive' && page === 0 && previousProduct && 
+                         sortConfig.sort_column === 'created_at' && sortConfig.sort_order === 'DESC') {
+                // Add to inactive view (first page only, newest first)
+                utils.products.getAll.setData(cacheKey, {
+                  ...currentData,
+                  products: [{ ...previousProduct, status: 0 }, ...currentData.products],
+                  total: currentData.total + 1,
+                });
+              }
+            }
+          }
+        }
+      }
 
       utils.products.getById.setData({ id: variables.id }, undefined);
 
-      return { previousProducts, previousProduct };
+      return { previousCaches, previousProduct };
     },
     onError: (_err, variables, context) => {
-      if (context?.previousProducts) {
-        utils.products.getAll.setData(undefined, context.previousProducts);
+      if (context?.previousCaches) {
+        // Restore all cached queries
+        for (const cache of Object.values(context.previousCaches)) {
+          const { data, key } = cache as { data: any; key: any };
+          utils.products.getAll.setData(key, data);
+        }
       }
       if (context?.previousProduct) {
         utils.products.getById.setData(

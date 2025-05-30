@@ -12,6 +12,7 @@ import {
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useNotifications } from '~/contexts/NotificationContext';
 import { trpc } from '~/lib/trpc';
+import { useProductMutations } from '~/hooks/useProductMutations';
 import { getCategoryName, getStatusText } from '~/utils/product.utils';
 import { ProductStatus } from '../../../shared/constants';
 
@@ -34,16 +35,7 @@ function ProductDetail() {
 
   const error = queryError instanceof Error ? queryError.message : null;
 
-  const deleteMutation = trpc.products.delete.useMutation({
-    onSuccess: () => {
-      showNotification('success', 'Product marked as inactive');
-      navigate({ to: '/products' });
-    },
-    onError: (err) => {
-      console.error('Delete error:', err);
-      showNotification('error', err.message || 'Failed to delete product');
-    },
-  });
+  const { updateProduct } = useProductMutations();
 
   const handleDelete = async () => {
     if (!product) return;
@@ -54,7 +46,26 @@ function ProductDetail() {
 
     if (!confirmed) return;
 
-    deleteMutation.mutate({ id: product.id });
+    updateProduct.mutate(
+      {
+        id: product.id,
+        name: product.name,
+        category: product.category,
+        price: product.price,
+        description: product.description,
+        status: ProductStatus.INACTIVE,
+      },
+      {
+        onSuccess: () => {
+          showNotification('success', 'Product marked as inactive');
+          navigate({ to: '/products' });
+        },
+        onError: (err) => {
+          console.error('Update status error:', err);
+          showNotification('error', err.message || 'Failed to update product status');
+        },
+      }
+    );
   };
 
   if (loading) {
@@ -132,9 +143,9 @@ function ProductDetail() {
             <Button
               color="red"
               onClick={handleDelete}
-              disabled={deleteMutation.isPending}
+              disabled={updateProduct.isPending}
             >
-              {deleteMutation.isPending ? 'Updating...' : 'Mark as Inactive'}
+              {updateProduct.isPending ? 'Updating...' : 'Mark as Inactive'}
             </Button>
           ) : (
             <Text c="dimmed" size="sm">Product is inactive</Text>
