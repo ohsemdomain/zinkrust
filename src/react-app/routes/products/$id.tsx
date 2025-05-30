@@ -94,6 +94,9 @@ function ProductDetail() {
         <h3>{product.name}</h3>
         <div className="detail-grid">
           <div>
+            <strong>ID:</strong> {product.id}
+          </div>
+          <div>
             <strong>Category:</strong> {getCategoryName(product.category)}
           </div>
           <div>

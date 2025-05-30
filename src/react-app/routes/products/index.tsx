@@ -47,14 +47,14 @@ function Products() {
     return status === 1 ? 'Active' : 'Inactive';
   };
 
-  if (loading) {
+  /* if (loading) {
     return (
       <div className="p-2">
         <h2>Products</h2>
         <p>Loading products...</p>
       </div>
     );
-  }
+  } */
 
   if (error) {
     return (
@@ -85,6 +85,9 @@ function Products() {
                 {product.name}
               </Link>
             </h3>
+            <p>
+              <strong>ID:</strong> {product.id}
+            </p>
             <p>
               <strong>Category:</strong> {getCategoryName(product.category)}
             </p>
