@@ -1,3 +1,4 @@
+import { Container, Loader, Stack } from '@mantine/core';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { trpc } from '~/lib/trpc';
@@ -10,10 +11,6 @@ export const Route = createFileRoute('/products/edit/$id')({
 function EditProduct() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [loadingProduct, setLoadingProduct] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [product, setProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     category: 1,
@@ -22,69 +19,56 @@ function EditProduct() {
     status: 1,
   });
 
-  // Load existing product data
+  const {
+    data: product,
+    isLoading: loadingProduct,
+    error: queryError,
+  } = trpc.products.getById.useQuery(
+    { id: Number.parseInt(id) },
+    { enabled: !!id }
+  );
+
+  const updateMutation = trpc.products.update.useMutation({
+    onSuccess: (result) => {
+      console.log('Updated product:', result);
+      navigate({ to: '/products/$id', params: { id: result.id.toString() } });
+    },
+    onError: (err) => {
+      console.error('Update error:', err);
+    },
+  });
+
+  // Pre-populate form when product data loads
   useEffect(() => {
-    const loadProduct = async () => {
-      try {
-        setLoadingProduct(true);
-        const result = await trpc.products.getById.query({
-          id: Number.parseInt(id),
-        });
-        setProduct(result);
-
-        // Pre-populate form
-        setFormData({
-          name: result.name,
-          category: result.category,
-          price: result.price,
-          description: result.description || '',
-          status: result.status,
-        });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load product');
-      } finally {
-        setLoadingProduct(false);
-      }
-    };
-
-    if (id) {
-      loadProduct();
+    if (product) {
+      setFormData({
+        name: product.name,
+        category: product.category,
+        price: product.price,
+        description: product.description || '',
+        status: product.status,
+      });
     }
-  }, [id]);
+  }, [product]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name || formData.price <= 0 || !product) {
-      setError('Name and valid price are required');
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    const payload = {
+      id: product.id,
+      name: formData.name,
+      category: formData.category,
+      price: formData.price,
+      description: formData.description || undefined,
+      status: formData.status,
+    };
 
-      const payload = {
-        id: product.id,
-        name: formData.name,
-        category: formData.category,
-        price: formData.price,
-        description: formData.description || undefined,
-        status: formData.status,
-      };
-
-      console.log('Updating product:', payload);
-
-      const result = await trpc.products.update.mutate(payload);
-
-      console.log('Updated product:', result);
-      navigate({ to: '/products/$id', params: { id: product.id.toString() } });
-    } catch (err) {
-      console.error('Update error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update product');
-    } finally {
-      setLoading(false);
-    }
+    console.log('Updating product:', payload);
+    updateMutation.mutate(payload);
   };
 
   const handleInputChange = (
@@ -111,18 +95,19 @@ function EditProduct() {
 
   if (loadingProduct) {
     return (
-      <div className="p-2">
-        <h2>Edit Product</h2>
-        <p>Loading product...</p>
-      </div>
+      <Container>
+        <Stack align="center" py="xl">
+          <Loader size="lg" />
+        </Stack>
+      </Container>
     );
   }
 
-  if (error && !product) {
+  if (queryError && !product) {
     return (
       <div className="p-2">
         <h2>Edit Product</h2>
-        <p style={{ color: 'red' }}>Error: {error}</p>
+        <p style={{ color: 'red' }}>Error: {queryError instanceof Error ? queryError.message : 'Failed to load product'}</p>
       </div>
     );
   }
@@ -131,12 +116,12 @@ function EditProduct() {
     <div className="p-2">
       <h2>Edit Product</h2>
 
-      {error && (
+      {updateMutation.error && (
         <div
           className="error-message"
           style={{ color: 'red', marginBottom: '1rem' }}
         >
-          Error: {error}
+          Error: {updateMutation.error instanceof Error ? updateMutation.error.message : 'Failed to update product'}
         </div>
       )}
 
@@ -209,8 +194,8 @@ function EditProduct() {
         </div>
 
         <div className="form-actions">
-          <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? 'Updating...' : 'Update Product'}
+          <button type="submit" disabled={updateMutation.isPending} className="btn-primary">
+            {updateMutation.isPending ? 'Updating...' : 'Update Product'}
           </button>
           <button
             type="button"

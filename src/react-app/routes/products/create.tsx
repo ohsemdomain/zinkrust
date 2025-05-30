@@ -8,8 +8,6 @@ export const Route = createFileRoute('/products/create')({
 
 function CreateProduct() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     category: 1,
@@ -18,44 +16,33 @@ function CreateProduct() {
     status: 1,
   });
 
+  const createMutation = trpc.products.create.useMutation({
+    onSuccess: (result) => {
+      console.log('Created product:', result);
+      navigate({ to: '/products' });
+    },
+    onError: (err) => {
+      console.error('Create error:', err);
+    },
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name || formData.price <= 0) {
-      setError('Name and valid price are required');
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
+    const payload = {
+      name: formData.name,
+      category: formData.category,
+      price: formData.price,
+      description: formData.description || undefined,
+      status: formData.status,
+    };
 
-      const payload = {
-        name: formData.name,
-        category: formData.category,
-        price: formData.price,
-        description: formData.description || undefined,
-        status: formData.status,
-      };
-
-      console.log('Sending payload:', payload);
-      console.log('Types:', {
-        name: typeof payload.name,
-        category: typeof payload.category,
-        price: typeof payload.price,
-        status: typeof payload.status,
-      });
-
-      const result = await trpc.products.create.mutate(payload);
-
-      console.log('Created product:', result);
-      navigate({ to: '/products' });
-    } catch (err) {
-      console.error('Create error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create product');
-    } finally {
-      setLoading(false);
-    }
+    console.log('Sending payload:', payload);
+    createMutation.mutate(payload);
   };
 
   const handleInputChange = (
@@ -84,12 +71,12 @@ function CreateProduct() {
     <div className="p-2">
       <h2>Create New Product</h2>
 
-      {error && (
+      {createMutation.error && (
         <div
           className="error-message"
           style={{ color: 'red', marginBottom: '1rem' }}
         >
-          Error: {error}
+          Error: {createMutation.error instanceof Error ? createMutation.error.message : 'Failed to create product'}
         </div>
       )}
 
@@ -162,8 +149,8 @@ function CreateProduct() {
         </div>
 
         <div className="form-actions">
-          <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? 'Creating...' : 'Create Product'}
+          <button type="submit" disabled={createMutation.isPending} className="btn-primary">
+            {createMutation.isPending ? 'Creating...' : 'Create Product'}
           </button>
           <button
             type="button"

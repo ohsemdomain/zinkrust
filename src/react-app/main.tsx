@@ -4,6 +4,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './_styles.css';
 import { theme } from './_theme';
+import { TRPCProvider } from './components/providers/TRPCProvider';
 
 // Import the generated route tree
 import { routeTree } from './routeTree.gen';
@@ -23,8 +24,10 @@ if (!rootElement) throw new Error('Root element not found');
 
 createRoot(rootElement).render(
   <StrictMode>
-    <MantineProvider theme={theme}>
-      <RouterProvider router={router} />
-    </MantineProvider>
+    <TRPCProvider>
+      <MantineProvider theme={theme}>
+        <RouterProvider router={router} />
+      </MantineProvider>
+    </TRPCProvider>
   </StrictMode>,
 );
