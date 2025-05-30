@@ -128,8 +128,8 @@ export const productsRouter = createTRPCRouter({
     .output(productSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        // Validate input
-        const validatedInput = createProductSchema.parse(input);
+        // Input is already validated by TRPC using createProductSchema
+        const validatedInput = input;
 
         // Generate unique 9-digit crypto ID
         const productId = await generateUniqueProductId(ctx.env.DB);
@@ -169,8 +169,8 @@ export const productsRouter = createTRPCRouter({
     .output(productSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        // Validate input
-        const validatedInput = updateProductSchema.parse(input);
+        // Input is already validated by TRPC using updateProductSchema
+        const validatedInput = input;
 
         // Check if product exists
         const existingCheck = await ctx.env.DB.prepare(
@@ -221,8 +221,8 @@ export const productsRouter = createTRPCRouter({
     .output(z.object({ success: z.boolean(), id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       try {
-        // Validate input
-        const validatedInput = deleteProductSchema.parse(input);
+        // Input is already validated by TRPC using deleteProductSchema
+        const validatedInput = input;
 
         // Check if product exists
         const existingCheck = await ctx.env.DB.prepare(

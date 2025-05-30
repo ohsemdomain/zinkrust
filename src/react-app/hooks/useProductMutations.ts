@@ -37,7 +37,7 @@ export function useProductMutations() {
         id: tempId,
         name: newProduct.name,
         category: newProduct.category,
-        price_cents: Math.round(newProduct.price_cents * 100), // Direct conversion since form sends dollars
+        price_cents: newProduct.price_cents, // Schema already converted dollars to cents
         description: newProduct.description || null,
         status: 1, // Always create as active
         created_at: Math.floor(Date.now() / 1000),
@@ -135,7 +135,7 @@ export function useProductMutations() {
         ? {
             ...previousProduct,
             ...updatedProduct,
-            price_cents: Math.round(updatedProduct.price_cents * 100), // Direct conversion since form sends dollars
+            price_cents: updatedProduct.price_cents, // Schema already converted dollars to cents
             updated_at: Math.floor(Date.now() / 1000),
           }
         : null;
