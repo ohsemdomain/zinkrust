@@ -4,7 +4,10 @@ import { ProductForm } from '~/components/ProductForm';
 import { useNotifications } from '~/contexts/NotificationContext';
 import { trpc } from '~/lib/trpc';
 import { useProductMutations } from '~/hooks/useProductMutations';
-import type { CreateProduct } from '../../../worker/schemas/products';
+import type {
+  CreateProduct,
+  UpdateProduct,
+} from '../../../worker/schemas/products';
 
 export const Route = createFileRoute('/products/edit/$id')({
   component: EditProduct,
@@ -25,17 +28,20 @@ function EditProduct() {
   );
 
   const { updateProduct } = useProductMutations();
-  
+
   const updateMutation = {
     ...updateProduct,
-    mutate: (data: any) => {
+    mutate: (data: UpdateProduct) => {
       updateProduct.mutate(data, {
         onSuccess: (result) => {
           showNotification(
             'success',
             `Product "${result.name}" updated successfully`,
           );
-          navigate({ to: '/products/$id', params: { id: result.id.toString() } });
+          navigate({
+            to: '/products/$id',
+            params: { id: result.id.toString() },
+          });
         },
         onError: (err) => {
           console.error('Update error:', err);
@@ -47,13 +53,13 @@ function EditProduct() {
     error: updateProduct.error,
   };
 
-
   const handleSubmit = (values: CreateProduct) => {
     if (!product) return;
-    
+
     const payload = {
       id: product.id,
       ...values,
+      status: product.status, // Keep existing status in edit mode
     };
 
     updateMutation.mutate(payload);
@@ -87,12 +93,12 @@ function EditProduct() {
     <div className="p-2">
       <h2>Edit Product</h2>
       <ProductForm
-        initialValues={{
+        initialValues={product ? {
           name: product.name,
           category: product.category,
           price: product.price,
           description: product.description || '',
-        }}
+        } : undefined}
         isSubmitting={updateMutation.isPending}
         error={
           updateMutation.error instanceof Error

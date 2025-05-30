@@ -25,16 +25,16 @@ export const productsRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       try {
-        const { 
-          per_page = 25, 
-          page = 0, 
+        const {
+          per_page = 25,
+          page = 0,
           filter_by = 'active',
           sort_column = 'created_at',
-          sort_order = 'DESC'
+          sort_order = 'DESC',
         } = input || {};
-        
+
         const offset = page * per_page;
-        
+
         // Build WHERE clause based on status filter
         let whereClause = '';
         if (filter_by === 'active') {
@@ -45,8 +45,17 @@ export const productsRouter = createTRPCRouter({
         // 'all' means no WHERE clause
 
         // Validate sort column for security
-        const allowedColumns = ['name', 'price', 'category', 'status', 'created_at', 'updated_at'];
-        const safeColumn = allowedColumns.includes(sort_column) ? sort_column : 'created_at';
+        const allowedColumns = [
+          'name',
+          'price',
+          'category',
+          'status',
+          'created_at',
+          'updated_at',
+        ];
+        const safeColumn = allowedColumns.includes(sort_column)
+          ? sort_column
+          : 'created_at';
         const safeOrder = sort_order === 'ASC' ? 'ASC' : 'DESC';
 
         // Get total count

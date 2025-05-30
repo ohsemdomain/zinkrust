@@ -1,4 +1,12 @@
-import { Button, Group, NumberInput, Select, Stack, TextInput, Textarea } from '@mantine/core';
+import {
+  Button,
+  Group,
+  NumberInput,
+  Select,
+  Stack,
+  TextInput,
+  Textarea,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useEffect } from 'react';
 import { ProductCategory } from '../../shared/constants';
@@ -46,7 +54,7 @@ export function ProductForm({
         description: initialValues.description || '',
       });
     }
-  }, [initialValues]);
+  }, [initialValues, form]);
 
   const handleSubmit = (values: CreateProduct) => {
     onSubmit(values);
@@ -74,7 +82,9 @@ export function ProductForm({
           required
           data={categoryOptions}
           value={String(form.values.category || '')}
-          onChange={(value) => form.setFieldValue('category', Number(value) || 0)}
+          onChange={(value) =>
+            form.setFieldValue('category', Number(value) || 0)
+          }
           error={form.errors.category}
         />
 
@@ -99,9 +109,7 @@ export function ProductForm({
           {...form.getInputProps('description')}
         />
 
-        {error && (
-          <div style={{ color: 'red' }}>Error: {error}</div>
-        )}
+        {error && <div style={{ color: 'red' }}>Error: {error}</div>}
 
         <Group>
           <Button type="submit" loading={isSubmitting}>

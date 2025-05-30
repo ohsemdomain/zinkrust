@@ -1,5 +1,4 @@
 import {
-  ProductCategory,
   ProductCategoryNames,
   ProductStatus,
   ProductStatusNames,

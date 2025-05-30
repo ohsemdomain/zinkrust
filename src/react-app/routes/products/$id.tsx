@@ -42,40 +42,45 @@ function ProductDetail() {
 
     const isCurrentlyActive = product.status === ProductStatus.ACTIVE;
     const action = isCurrentlyActive ? 'inactive' : 'active';
-    const confirmMessage = isCurrentlyActive 
+    const confirmMessage = isCurrentlyActive
       ? `Are you sure you want to mark "${product.name}" as inactive? You can view it later in the inactive products list.`
       : `Are you sure you want to mark "${product.name}" as active? It will appear in the active products list.`;
 
     const confirmed = window.confirm(confirmMessage);
     if (!confirmed) return;
 
-    const newStatus = isCurrentlyActive ? ProductStatus.INACTIVE : ProductStatus.ACTIVE;
-    
+    const newStatus = isCurrentlyActive
+      ? ProductStatus.INACTIVE
+      : ProductStatus.ACTIVE;
+
     const updatePayload = {
       id: product.id,
       name: product.name,
       category: product.category,
-      price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+      price:
+        typeof product.price === 'string'
+          ? Number.parseFloat(product.price)
+          : product.price,
       description: product.description || undefined,
       status: newStatus,
     };
-    
+
     console.log('Updating product with payload:', updatePayload);
 
-    updateProduct.mutate(
-      updatePayload,
-      {
-        onSuccess: () => {
-          showNotification('success', `Product marked as ${action}`);
-          navigate({ to: '/products' });
-        },
-        onError: (err: any) => {
-          console.error('Update status error:', err);
-          const errorMessage = err?.message || err?.data?.message || 'Failed to update product status';
-          showNotification('error', errorMessage);
-        },
-      }
-    );
+    updateProduct.mutate(updatePayload, {
+      onSuccess: () => {
+        showNotification('success', `Product marked as ${action}`);
+        navigate({ to: '/products' });
+      },
+      onError: (err) => {
+        console.error('Update status error:', err);
+        const errorMessage =
+          (err as any)?.message ||
+          (err as any)?.data?.message ||
+          'Failed to update product status';
+        showNotification('error', errorMessage);
+      },
+    });
   };
 
   if (loading) {

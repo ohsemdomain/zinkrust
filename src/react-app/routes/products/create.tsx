@@ -5,18 +5,18 @@ import { useProductMutations } from '~/hooks/useProductMutations';
 import type { CreateProduct } from '../../../worker/schemas/products';
 
 export const Route = createFileRoute('/products/create')({
-  component: CreateProduct,
+  component: CreateProductPage,
 });
 
-function CreateProduct() {
+function CreateProductPage() {
   const navigate = useNavigate();
   const { showNotification } = useNotifications();
 
   const { createProduct } = useProductMutations();
-  
+
   const createMutation = {
     ...createProduct,
-    mutate: (data: any) => {
+    mutate: (data: CreateProduct) => {
       createProduct.mutate(data, {
         onSuccess: (result) => {
           showNotification(

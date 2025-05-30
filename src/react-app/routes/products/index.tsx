@@ -22,7 +22,10 @@ const searchSchema = z.object({
   filter_by: z.enum(['active', 'inactive', 'all']).optional().default('active'),
   page: z.number().optional().default(0),
   per_page: z.number().optional().default(25),
-  sort_column: z.enum(['name', 'price', 'category', 'status', 'created_at', 'updated_at']).optional().default('created_at'),
+  sort_column: z
+    .enum(['name', 'price', 'category', 'status', 'created_at', 'updated_at'])
+    .optional()
+    .default('created_at'),
   sort_order: z.enum(['ASC', 'DESC']).optional().default('DESC'),
 });
 
@@ -34,13 +37,13 @@ export const Route = createFileRoute('/products/')({
 function Products() {
   const navigate = useNavigate();
   const search = Route.useSearch();
-  
+
   const {
     filter_by = 'active',
     page = 0,
     per_page = 25,
     sort_column = 'created_at',
-    sort_order = 'DESC'
+    sort_order = 'DESC',
   } = search;
 
   const { data, isLoading, error, refetch } = trpc.products.getAll.useQuery(
@@ -50,35 +53,37 @@ function Products() {
       gcTime: 10 * 60 * 1000,
       refetchOnWindowFocus: false,
       retry: 3,
-      keepPreviousData: true,
+      placeholderData: (previousData) => previousData,
     },
   );
-  
+
   const handleFilterChange = (newFilter: 'active' | 'inactive' | 'all') => {
     navigate({
+      to: '/products',
       search: { ...search, filter_by: newFilter, page: 0 },
     });
   };
 
   const handlePageChange = (newPage: number) => {
     navigate({
+      to: '/products',
       search: { ...search, page: newPage },
     });
   };
 
   const handleSortChange = (column: string, order: 'ASC' | 'DESC') => {
     navigate({
-      search: { 
-        ...search, 
-        sort_column: column as any, 
+      to: '/products',
+      search: {
+        ...search,
+        sort_column: column as typeof search.sort_column,
         sort_order: order,
-        page: 0 
+        page: 0,
       },
     });
   };
 
   const products = data?.products || [];
-  const total = data?.total || 0;
   const hasMore = data?.hasMore || false;
   const totalPages = data?.totalPages || 0;
   const currentPage = data?.currentPage || 0;
@@ -127,12 +132,14 @@ function Products() {
             </Button>
           </Grid.Col>
         </Grid>
-        
+
         <Group>
           <Select
             label="Filter Products"
             value={filter_by}
-            onChange={(value) => handleFilterChange(value as 'active' | 'inactive' | 'all')}
+            onChange={(value) =>
+              handleFilterChange(value as 'active' | 'inactive' | 'all')
+            }
             data={[
               { value: 'active', label: 'Active Products' },
               { value: 'inactive', label: 'Inactive Products' },

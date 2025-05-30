@@ -1,6 +1,25 @@
 import { trpc } from '~/lib/trpc';
 import type { Product } from '../../worker/schemas/products';
 
+type CacheData = {
+  products: Product[];
+  total: number;
+  hasMore: boolean;
+  currentPage: number;
+  totalPages: number;
+  perPage: number;
+};
+
+type CacheKey = {
+  filter_by: 'active' | 'inactive' | 'all';
+  page: number;
+  per_page: number;
+  sort_column: 'name' | 'price' | 'category' | 'status' | 'created_at' | 'updated_at';
+  sort_order: 'ASC' | 'DESC';
+};
+
+type CacheEntry = { data: CacheData; key: CacheKey };
+
 export function useProductMutations() {
   const utils = trpc.useUtils();
 
@@ -13,45 +32,52 @@ export function useProductMutations() {
         id: tempId,
         name: newProduct.name,
         category: newProduct.category,
-        price: newProduct.price,
+        price: typeof newProduct.price === 'string' ? Number.parseFloat(newProduct.price) : newProduct.price,
         description: newProduct.description || null,
         status: 1, // Always create as active
         created_at: Math.floor(Date.now() / 1000),
         updated_at: Math.floor(Date.now() / 1000),
       };
 
-      const previousCaches: Record<string, any> = {};
-      
+      const previousCaches: Record<string, CacheEntry> = {};
+
       // Update caches for all relevant filter combinations
-      const filters = ['all', 'active', 'inactive'];
-      const sortOrders = [
+      const filters: ('all' | 'active' | 'inactive')[] = ['all', 'active', 'inactive'];
+      const sortOrders: { sort_column: CacheKey['sort_column']; sort_order: CacheKey['sort_order'] }[] = [
         { sort_column: 'created_at', sort_order: 'DESC' },
         { sort_column: 'name', sort_order: 'ASC' },
         { sort_column: 'price', sort_order: 'ASC' },
       ];
-      
+
       for (const filter_by of filters) {
         for (const sortConfig of sortOrders) {
           // Check multiple pages
           for (let page = 0; page < 3; page++) {
-            const cacheKey = { 
-              filter_by, 
-              page, 
-              per_page: 25, 
+            const cacheKey: CacheKey = {
+              filter_by,
+              page,
+              per_page: 25,
               sort_column: sortConfig.sort_column,
-              sort_order: sortConfig.sort_order
+              sort_order: sortConfig.sort_order,
             };
             const currentData = utils.products.getAll.getData(cacheKey);
-            
+
             if (currentData) {
               const cacheKeyStr = `${filter_by}-${sortConfig.sort_column}-${sortConfig.sort_order}-${page}`;
-              previousCaches[cacheKeyStr] = { data: currentData, key: cacheKey };
-              
+              previousCaches[cacheKeyStr] = {
+                data: currentData,
+                key: cacheKey,
+              };
+
               // Only update first page with new product if sorting by created_at DESC (newest first)
               // Since all new products are active, only update 'all' and 'active' filters
-              if (page === 0 && sortConfig.sort_column === 'created_at' && sortConfig.sort_order === 'DESC') {
+              if (
+                page === 0 &&
+                sortConfig.sort_column === 'created_at' &&
+                sortConfig.sort_order === 'DESC'
+              ) {
                 const shouldAdd = filter_by === 'all' || filter_by === 'active';
-                  
+
                 if (shouldAdd) {
                   utils.products.getAll.setData(cacheKey, {
                     ...currentData,
@@ -71,7 +97,7 @@ export function useProductMutations() {
       if (context?.previousCaches) {
         // Restore all cached queries
         for (const cache of Object.values(context.previousCaches)) {
-          const { data, key } = cache as { data: any; key: any };
+          const { data, key } = cache;
           utils.products.getAll.setData(key, data);
         }
       }
@@ -92,70 +118,86 @@ export function useProductMutations() {
       const previousProduct = utils.products.getById.getData({
         id: updatedProduct.id,
       });
-      
-      const previousCaches: Record<string, any> = {};
-      const updatedProductData = previousProduct ? {
-        ...previousProduct,
-        ...updatedProduct,
-        updated_at: Math.floor(Date.now() / 1000),
-      } : null;
+
+      const previousCaches: Record<string, CacheEntry> = {};
+      const updatedProductData = previousProduct
+        ? {
+            ...previousProduct,
+            ...updatedProduct,
+            price: typeof updatedProduct.price === 'string' ? Number.parseFloat(updatedProduct.price) : updatedProduct.price,
+            updated_at: Math.floor(Date.now() / 1000),
+          }
+        : null;
 
       // Update caches for all relevant filter combinations
-      const filters = ['all', 'active', 'inactive'];
-      const sortOrders = [
+      const filters: ('all' | 'active' | 'inactive')[] = ['all', 'active', 'inactive'];
+      const sortOrders: { sort_column: CacheKey['sort_column']; sort_order: CacheKey['sort_order'] }[] = [
         { sort_column: 'created_at', sort_order: 'DESC' },
         { sort_column: 'name', sort_order: 'ASC' },
         { sort_column: 'price', sort_order: 'ASC' },
       ];
-      
+
       for (const filter_by of filters) {
         for (const sortConfig of sortOrders) {
           // Check multiple pages
           for (let page = 0; page < 3; page++) {
-            const cacheKey = { 
-              filter_by, 
-              page, 
-              per_page: 25, 
+            const cacheKey: CacheKey = {
+              filter_by,
+              page,
+              per_page: 25,
               sort_column: sortConfig.sort_column,
-              sort_order: sortConfig.sort_order
+              sort_order: sortConfig.sort_order,
             };
             const currentData = utils.products.getAll.getData(cacheKey);
-            
+
             if (currentData) {
               const cacheKeyStr = `${filter_by}-${sortConfig.sort_column}-${sortConfig.sort_order}-${page}`;
-              previousCaches[cacheKeyStr] = { data: currentData, key: cacheKey };
-              
-              const productIndex = currentData.products.findIndex(p => p.id === updatedProduct.id);
-              
+              previousCaches[cacheKeyStr] = {
+                data: currentData,
+                key: cacheKey,
+              };
+
+              const productIndex = currentData.products.findIndex(
+                (p) => p.id === updatedProduct.id,
+              );
+
               if (productIndex !== -1) {
                 // Product exists in this cache
-                const shouldRemove = 
+                const shouldRemove =
                   (filter_by === 'active' && updatedProduct.status === 0) ||
                   (filter_by === 'inactive' && updatedProduct.status === 1);
-                  
+
                 if (shouldRemove) {
                   // Remove from this cache
                   utils.products.getAll.setData(cacheKey, {
                     ...currentData,
-                    products: currentData.products.filter(p => p.id !== updatedProduct.id),
+                    products: currentData.products.filter(
+                      (p) => p.id !== updatedProduct.id,
+                    ),
                     total: currentData.total - 1,
                   });
-                } else {
+                } else if (updatedProductData) {
                   // Update in this cache
                   utils.products.getAll.setData(cacheKey, {
                     ...currentData,
                     products: currentData.products.map((product) =>
-                      product.id === updatedProduct.id ? updatedProductData! : product
+                      product.id === updatedProduct.id
+                        ? updatedProductData
+                        : product,
                     ),
                   });
                 }
-              } else if (page === 0 && sortConfig.sort_column === 'created_at' && sortConfig.sort_order === 'DESC') {
+              } else if (
+                page === 0 &&
+                sortConfig.sort_column === 'created_at' &&
+                sortConfig.sort_order === 'DESC'
+              ) {
                 // Product doesn't exist in this cache, check if it should be added (only on first page of newest first)
-                const shouldAdd = 
-                  (filter_by === 'all') ||
+                const shouldAdd =
+                  filter_by === 'all' ||
                   (filter_by === 'active' && updatedProduct.status === 1) ||
                   (filter_by === 'inactive' && updatedProduct.status === 0);
-                  
+
                 if (shouldAdd && updatedProductData) {
                   utils.products.getAll.setData(cacheKey, {
                     ...currentData,
@@ -169,10 +211,10 @@ export function useProductMutations() {
         }
       }
 
-      if (previousProduct) {
+      if (previousProduct && updatedProductData) {
         utils.products.getById.setData(
           { id: updatedProduct.id },
-          updatedProductData!,
+          updatedProductData,
         );
       }
 
@@ -182,7 +224,7 @@ export function useProductMutations() {
       if (context?.previousCaches) {
         // Restore all cached queries
         for (const cache of Object.values(context.previousCaches)) {
-          const { data, key } = cache as { data: any; key: any };
+          const { data, key } = cache;
           utils.products.getAll.setData(key, data);
         }
       }
@@ -212,43 +254,50 @@ export function useProductMutations() {
       const previousProduct = utils.products.getById.getData({
         id: variables.id,
       });
-      
-      const previousCaches: Record<string, any> = {};
+
+      const previousCaches: Record<string, CacheEntry> = {};
 
       // Note: This is now a soft delete (status = 0) on the backend
       // Update caches for all relevant filter combinations
-      const filters = ['all', 'active', 'inactive'];
-      const sortOrders = [
+      const filters: ('all' | 'active' | 'inactive')[] = ['all', 'active', 'inactive'];
+      const sortOrders: { sort_column: CacheKey['sort_column']; sort_order: CacheKey['sort_order'] }[] = [
         { sort_column: 'created_at', sort_order: 'DESC' },
         { sort_column: 'name', sort_order: 'ASC' },
         { sort_column: 'price', sort_order: 'ASC' },
       ];
-      
+
       for (const filter_by of filters) {
         for (const sortConfig of sortOrders) {
           // Check multiple pages
           for (let page = 0; page < 3; page++) {
-            const cacheKey = { 
-              filter_by, 
-              page, 
-              per_page: 25, 
+            const cacheKey: CacheKey = {
+              filter_by,
+              page,
+              per_page: 25,
               sort_column: sortConfig.sort_column,
-              sort_order: sortConfig.sort_order
+              sort_order: sortConfig.sort_order,
             };
             const currentData = utils.products.getAll.getData(cacheKey);
-            
+
             if (currentData) {
               const cacheKeyStr = `${filter_by}-${sortConfig.sort_column}-${sortConfig.sort_order}-${page}`;
-              previousCaches[cacheKeyStr] = { data: currentData, key: cacheKey };
-              
-              const productIndex = currentData.products.findIndex(p => p.id === variables.id);
-              
+              previousCaches[cacheKeyStr] = {
+                data: currentData,
+                key: cacheKey,
+              };
+
+              const productIndex = currentData.products.findIndex(
+                (p) => p.id === variables.id,
+              );
+
               if (productIndex !== -1) {
                 if (filter_by === 'active') {
                   // Remove from active view
                   utils.products.getAll.setData(cacheKey, {
                     ...currentData,
-                    products: currentData.products.filter(p => p.id !== variables.id),
+                    products: currentData.products.filter(
+                      (p) => p.id !== variables.id,
+                    ),
                     total: currentData.total - 1,
                   });
                 } else if (filter_by === 'inactive') {
@@ -257,17 +306,25 @@ export function useProductMutations() {
                   // Update status in all view
                   utils.products.getAll.setData(cacheKey, {
                     ...currentData,
-                    products: currentData.products.map(p =>
-                      p.id === variables.id ? { ...p, status: 0 } : p
+                    products: currentData.products.map((p) =>
+                      p.id === variables.id ? { ...p, status: 0 } : p,
                     ),
                   });
                 }
-              } else if (filter_by === 'inactive' && page === 0 && previousProduct && 
-                         sortConfig.sort_column === 'created_at' && sortConfig.sort_order === 'DESC') {
+              } else if (
+                filter_by === 'inactive' &&
+                page === 0 &&
+                previousProduct &&
+                sortConfig.sort_column === 'created_at' &&
+                sortConfig.sort_order === 'DESC'
+              ) {
                 // Add to inactive view (first page only, newest first)
                 utils.products.getAll.setData(cacheKey, {
                   ...currentData,
-                  products: [{ ...previousProduct, status: 0 }, ...currentData.products],
+                  products: [
+                    { ...previousProduct, status: 0 },
+                    ...currentData.products,
+                  ],
                   total: currentData.total + 1,
                 });
               }
@@ -284,7 +341,7 @@ export function useProductMutations() {
       if (context?.previousCaches) {
         // Restore all cached queries
         for (const cache of Object.values(context.previousCaches)) {
-          const { data, key } = cache as { data: any; key: any };
+          const { data, key } = cache;
           utils.products.getAll.setData(key, data);
         }
       }
