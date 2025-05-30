@@ -28,7 +28,9 @@ dist-ssr
 .env.development
 .env.production
 
+# Cloudflare
 .wrangler
 .wrangler.json
 wrangler.json
 .dev.vars
+wrangler
