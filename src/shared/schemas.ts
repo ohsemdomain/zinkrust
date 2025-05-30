@@ -20,6 +20,9 @@ export const createProductSchema = z.object({
 
 export const updateProductSchema = createProductSchema.extend({
   id: z.number().positive('Invalid product ID'),
+  status: z.number().refine((val) => Object.values(ProductStatus).includes(val), {
+    message: 'Invalid status',
+  }),
 });
 
 export const paginationSchema = z.object({

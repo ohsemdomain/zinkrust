@@ -37,32 +37,42 @@ function ProductDetail() {
 
   const { updateProduct } = useProductMutations();
 
-  const handleDelete = async () => {
+  const handleStatusToggle = async () => {
     if (!product) return;
 
-    const confirmed = window.confirm(
-      `Are you sure you want to mark "${product.name}" as inactive? You can view it later in the inactive products list.`,
-    );
+    const isCurrentlyActive = product.status === ProductStatus.ACTIVE;
+    const action = isCurrentlyActive ? 'inactive' : 'active';
+    const confirmMessage = isCurrentlyActive 
+      ? `Are you sure you want to mark "${product.name}" as inactive? You can view it later in the inactive products list.`
+      : `Are you sure you want to mark "${product.name}" as active? It will appear in the active products list.`;
 
+    const confirmed = window.confirm(confirmMessage);
     if (!confirmed) return;
 
+    const newStatus = isCurrentlyActive ? ProductStatus.INACTIVE : ProductStatus.ACTIVE;
+    
+    const updatePayload = {
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+      description: product.description || undefined,
+      status: newStatus,
+    };
+    
+    console.log('Updating product with payload:', updatePayload);
+
     updateProduct.mutate(
-      {
-        id: product.id,
-        name: product.name,
-        category: product.category,
-        price: product.price,
-        description: product.description,
-        status: ProductStatus.INACTIVE,
-      },
+      updatePayload,
       {
         onSuccess: () => {
-          showNotification('success', 'Product marked as inactive');
+          showNotification('success', `Product marked as ${action}`);
           navigate({ to: '/products' });
         },
-        onError: (err) => {
+        onError: (err: any) => {
           console.error('Update status error:', err);
-          showNotification('error', err.message || 'Failed to update product status');
+          const errorMessage = err?.message || err?.data?.message || 'Failed to update product status';
+          showNotification('error', errorMessage);
         },
       }
     );
@@ -142,13 +152,19 @@ function ProductDetail() {
           {product.status === ProductStatus.ACTIVE ? (
             <Button
               color="red"
-              onClick={handleDelete}
+              onClick={handleStatusToggle}
               disabled={updateProduct.isPending}
             >
               {updateProduct.isPending ? 'Updating...' : 'Mark as Inactive'}
             </Button>
           ) : (
-            <Text c="dimmed" size="sm">Product is inactive</Text>
+            <Button
+              color="green"
+              onClick={handleStatusToggle}
+              disabled={updateProduct.isPending}
+            >
+              {updateProduct.isPending ? 'Updating...' : 'Mark as Active'}
+            </Button>
           )}
         </Group>
       </Stack>
