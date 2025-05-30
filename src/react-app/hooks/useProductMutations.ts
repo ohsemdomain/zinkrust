@@ -1,9 +1,6 @@
 import { trpc } from '~/lib/trpc';
-import { PriceUtils } from '../../shared/utils/price';
 import type {
-  CreateProduct,
   Product,
-  UpdateProduct,
 } from '../../worker/schemas/products';
 
 type CacheData = {

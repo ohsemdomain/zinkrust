@@ -102,7 +102,7 @@ export function ProductForm({
           hideControls
           value={form.values.price || 0}
           onChange={(val) => {
-            form.setFieldValue('price', val || 0);
+            form.setFieldValue('price', (typeof val === 'number' ? val : 0));
           }}
           error={form.errors.price}
         />
