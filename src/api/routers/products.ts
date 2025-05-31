@@ -7,8 +7,8 @@ import {
   productFilterSchema,
   productSchema,
   updateProductSchema,
-} from '../shared';
-import { DatabaseError, ValidationError, generateUniqueId, t } from './trpc';
+} from '../../shared';
+import { DatabaseError, ValidationError, generateUniqueId, t } from '../trpc';
 
 // ==================== SCHEMAS ====================
 const deleteProductSchema = z.object({

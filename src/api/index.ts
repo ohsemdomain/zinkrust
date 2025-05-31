@@ -3,7 +3,7 @@ import { trpcServer } from '@hono/trpc-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { APP_CONFIG } from '../shared';
-import { productsRouter } from './products';
+import { productsRouter } from './routers/products';
 import { type Env, t } from './trpc';
 
 // ==================== MAIN APP ROUTER ====================
