@@ -20,14 +20,18 @@ export const ValidationError = (message = 'Invalid input data') =>
   new TRPCError({ code: 'BAD_REQUEST', message });
 
 // ==================== UTILITIES ====================
-export async function generateUniqueProductId(db: D1Database): Promise<number> {
-  const { minId, maxId, idGenerationMaxAttempts } = APP_CONFIG.products;
-
-  for (let attempt = 0; attempt < idGenerationMaxAttempts; attempt++) {
+export async function generateUniqueId(
+  db: D1Database,
+  table: string,
+  minId: number,
+  maxId: number,
+  maxAttempts = 10
+): Promise<number> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const randomId = Math.floor(Math.random() * (maxId - minId + 1)) + minId;
 
     const existingCheck = await db
-      .prepare('SELECT id FROM products WHERE id = ? LIMIT 1')
+      .prepare(`SELECT id FROM ${table} WHERE id = ? LIMIT 1`)
       .bind(randomId)
       .all();
 
@@ -37,6 +41,7 @@ export async function generateUniqueProductId(db: D1Database): Promise<number> {
   }
 
   throw DatabaseError(
-    'Failed to generate unique product ID after maximum attempts',
+    `Failed to generate unique ID for ${table} after ${maxAttempts} attempts`,
   );
 }
+

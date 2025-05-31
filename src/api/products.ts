@@ -8,7 +8,7 @@ import {
   productSchema,
   type ProductListResponse,
 } from '../shared';
-import { t, DatabaseError, ValidationError, generateUniqueProductId } from './trpc';
+import { t, DatabaseError, ValidationError, generateUniqueId } from './trpc';
 
 // ==================== SCHEMAS ====================
 const deleteProductSchema = z.object({
@@ -128,7 +128,8 @@ export const productsRouter = t.router({
     .output(z.custom<Product>())
     .mutation(async ({ ctx, input }) => {
       try {
-        const productId = await generateUniqueProductId(ctx.env.DB);
+        const { minId, maxId, idGenerationMaxAttempts } = APP_CONFIG.products;
+        const productId = await generateUniqueId(ctx.env.DB, 'products', minId, maxId, idGenerationMaxAttempts);
 
         const { results } = await ctx.env.DB.prepare(
           `INSERT INTO products (id, name, category, price_cents, description, status) 
