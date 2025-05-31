@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import type {
-  createProductSchema,
-  updateProductSchema,
-} from '../../shared/schemas';
 
-// Zod schemas
+// Re-export everything from shared types
+export * from '../../shared/types';
+export { createProductSchema, updateProductSchema } from '../../shared/schemas';
+
+// Product schema for validation
 export const productSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -16,14 +16,9 @@ export const productSchema = z.object({
   updated_at: z.number(),
 });
 
-// Re-export shared schemas
-export { createProductSchema, updateProductSchema } from '../../shared/schemas';
-
+// Worker-specific schemas
 export const deleteProductSchema = z.object({
   id: z.number().positive(),
 });
 
-export type Product = z.infer<typeof productSchema>;
-export type CreateProduct = z.infer<typeof createProductSchema>;
-export type UpdateProduct = z.infer<typeof updateProductSchema>;
 export type DeleteProduct = z.infer<typeof deleteProductSchema>;

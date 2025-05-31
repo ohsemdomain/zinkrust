@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { productFilterSchema } from '../../../shared/schemas';
+import { APP_CONFIG } from '../../../shared/config';
 import {
   createProductSchema,
   deleteProductSchema,
-  productSchema,
   updateProductSchema,
+  productSchema,
 } from '../../schemas/products';
+import type { Product } from '../../../shared/types';
 import { generateUniqueProductId } from '../../utils/idGenerator';
 import { createTRPCRouter, publicProcedure } from '../init';
 import { DatabaseError, ValidationError } from '../types/errors';
@@ -15,7 +17,7 @@ export const productsRouter = createTRPCRouter({
     .input(productFilterSchema.optional())
     .output(
       z.object({
-        products: z.array(productSchema),
+        products: z.array(z.custom<Product>()),
         total: z.number(),
         hasMore: z.boolean(),
         currentPage: z.number(),
@@ -26,7 +28,7 @@ export const productsRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       try {
         const {
-          per_page = 25,
+          per_page = APP_CONFIG.pagination.defaultPageSize,
           page = 0,
           filter_by = 'active',
           sort_column = 'created_at',
@@ -76,7 +78,7 @@ export const productsRouter = createTRPCRouter({
             return productSchema.parse(result);
           } catch (error) {
             console.error('Product validation error:', error, 'Data:', result);
-            throw new ValidationError('Invalid product data from database');
+            throw ValidationError('Invalid product data from database');
           }
         });
 
@@ -93,13 +95,13 @@ export const productsRouter = createTRPCRouter({
         if (error instanceof ValidationError) {
           throw error;
         }
-        throw new DatabaseError('Failed to fetch products');
+        throw DatabaseError('Failed to fetch products');
       }
     }),
 
   getById: publicProcedure
     .input(z.object({ id: z.number().positive() }))
-    .output(productSchema)
+    .output(z.custom<Product>())
     .query(async ({ ctx, input }) => {
       try {
         const { results } = await ctx.env.DB.prepare(
@@ -109,23 +111,19 @@ export const productsRouter = createTRPCRouter({
           .all();
 
         if (results.length === 0) {
-          throw new ValidationError(`Product with ID ${input.id} not found`);
+          throw ValidationError(`Product with ID ${input.id} not found`);
         }
 
-        const result = results[0];
-        return productSchema.parse(result);
+        return results[0] as unknown as Product;
       } catch (error) {
         console.error('Database error:', error);
-        if (error instanceof ValidationError) {
-          throw error;
-        }
-        throw new DatabaseError('Failed to fetch product');
+        throw error;
       }
     }),
 
   create: publicProcedure
     .input(createProductSchema)
-    .output(productSchema)
+    .output(z.custom<Product>())
     .mutation(async ({ ctx, input }) => {
       try {
         // Input is already validated by TRPC using createProductSchema
@@ -150,23 +148,19 @@ export const productsRouter = createTRPCRouter({
           .all();
 
         if (results.length === 0) {
-          throw new DatabaseError('Failed to create product');
+          throw DatabaseError('Failed to create product');
         }
 
-        const result = results[0];
-        return productSchema.parse(result);
+        return results[0] as unknown as Product;
       } catch (error) {
         console.error('Database error:', error);
-        if (error instanceof ValidationError) {
-          throw error;
-        }
-        throw new DatabaseError('Failed to create product');
+        throw error;
       }
     }),
 
   update: publicProcedure
     .input(updateProductSchema)
-    .output(productSchema)
+    .output(z.custom<Product>())
     .mutation(async ({ ctx, input }) => {
       try {
         // Input is already validated by TRPC using updateProductSchema
@@ -180,7 +174,7 @@ export const productsRouter = createTRPCRouter({
           .all();
 
         if (existingCheck.results.length === 0) {
-          throw new ValidationError(
+          throw ValidationError(
             `Product with ID ${validatedInput.id} not found`,
           );
         }
@@ -202,17 +196,13 @@ export const productsRouter = createTRPCRouter({
           .all();
 
         if (results.length === 0) {
-          throw new DatabaseError('Failed to update product');
+          throw DatabaseError('Failed to update product');
         }
 
-        const result = results[0];
-        return productSchema.parse(result);
+        return results[0] as unknown as Product;
       } catch (error) {
         console.error('Update error:', error);
-        if (error instanceof ValidationError) {
-          throw error;
-        }
-        throw new DatabaseError('Failed to update product');
+        throw error;
       }
     }),
 
@@ -232,7 +222,7 @@ export const productsRouter = createTRPCRouter({
           .all();
 
         if (existingCheck.results.length === 0) {
-          throw new ValidationError(
+          throw ValidationError(
             `Product with ID ${validatedInput.id} not found`,
           );
         }
@@ -245,7 +235,7 @@ export const productsRouter = createTRPCRouter({
           .run();
 
         if (!success) {
-          throw new DatabaseError('Failed to delete product');
+          throw DatabaseError('Failed to delete product');
         }
 
         return { success: true, id: validatedInput.id };
@@ -254,7 +244,7 @@ export const productsRouter = createTRPCRouter({
         if (error instanceof ValidationError) {
           throw error;
         }
-        throw new DatabaseError('Failed to delete product');
+        throw DatabaseError('Failed to delete product');
       }
     }),
 });

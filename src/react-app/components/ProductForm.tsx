@@ -9,7 +9,7 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { ProductCategory } from '../../shared/constants';
-import type { CreateProduct } from '../../worker/schemas/products';
+import type { CreateProductInput } from '../../shared/types';
 
 // Form-specific type that works with dollars
 type ProductFormData = {
@@ -20,10 +20,10 @@ type ProductFormData = {
 };
 
 interface ProductFormProps {
-  initialValues?: Partial<CreateProduct>;
+  initialValues?: Partial<CreateProductInput>;
   isSubmitting: boolean;
   error: string | null;
-  onSubmit: (values: CreateProduct) => void;
+  onSubmit: (values: CreateProductInput) => void;
   onCancel: () => void;
   submitLabel: string;
 }
@@ -60,7 +60,7 @@ export function ProductForm({
       price_cents: Math.round(values.price * 100), // Convert dollars to cents here
       description: values.description,
     };
-    onSubmit(submissionData as CreateProduct);
+    onSubmit(submissionData as CreateProductInput);
   };
 
   const categoryOptions = [

@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { ProductForm } from '~/components/ProductForm';
-import { useNotifications } from '~/contexts/NotificationContext';
+import { useNotification } from '~/hooks/useNotification';
 import { useProductMutations } from '~/hooks/useProductMutations';
-import type { CreateProduct } from '../../../worker/schemas/products';
+import type { CreateProductInput } from '../../../shared/types';
 
 export const Route = createFileRoute('/products/create')({
   component: CreateProductPage,
@@ -10,45 +10,27 @@ export const Route = createFileRoute('/products/create')({
 
 function CreateProductPage() {
   const navigate = useNavigate();
-  const { showNotification } = useNotifications();
-
+  const { showSuccess, showError } = useNotification();
   const { createProduct } = useProductMutations();
 
-  const createMutation = {
-    ...createProduct,
-    mutate: (data: CreateProduct) => {
-      createProduct.mutate(data, {
-        onSuccess: (result) => {
-          showNotification(
-            'success',
-            `Product "${result.name}" created successfully`,
-          );
-          navigate({ to: '/products' });
-        },
-        onError: (err) => {
-          console.error('Create error:', err);
-          showNotification('error', err.message || 'Failed to create product');
-        },
-      });
-    },
-    isPending: createProduct.isPending,
-    error: createProduct.error,
-  };
-
-  const handleSubmit = (values: CreateProduct) => {
-    createMutation.mutate(values);
+  const handleSubmit = (values: CreateProductInput) => {
+    createProduct.mutate(values, {
+      onSuccess: (result) => {
+        showSuccess(`Product "${result.name}" created successfully`);
+        navigate({ to: '/products' });
+      },
+      onError: (error) => {
+        showError(error);
+      },
+    });
   };
 
   return (
     <div className="p-2">
       <h2>Create New Product</h2>
       <ProductForm
-        isSubmitting={createMutation.isPending}
-        error={
-          createMutation.error instanceof Error
-            ? createMutation.error.message
-            : null
-        }
+        isSubmitting={createProduct.isPending}
+        error={createProduct.error?.message || null}
         onSubmit={handleSubmit}
         onCancel={() => navigate({ to: '/products' })}
         submitLabel="Create Product"

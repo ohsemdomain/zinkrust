@@ -10,7 +10,7 @@ import {
   Title,
 } from '@mantine/core';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useNotifications } from '~/contexts/NotificationContext';
+import { useNotification } from '~/hooks/useNotification';
 import { useProductMutations } from '~/hooks/useProductMutations';
 import { trpc } from '~/lib/trpc';
 import { getCategoryName, getStatusText } from '~/utils/product.utils';
@@ -24,7 +24,7 @@ export const Route = createFileRoute('/products/$id')({
 function ProductDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { showNotification } = useNotifications();
+  const { showSuccess, showError } = useNotification();
   const {
     data: product,
     isLoading: loading,
@@ -67,16 +67,11 @@ function ProductDetail() {
 
     updateProduct.mutate(updatePayload, {
       onSuccess: () => {
-        showNotification('success', `Product marked as ${action}`);
+        showSuccess(`Product marked as ${action}`);
         navigate({ to: '/products' });
       },
-      onError: (err) => {
-        console.error('Update status error:', err);
-        const errorMessage =
-          (err as unknown as Error)?.message ||
-          (err as { data?: { message?: string } })?.data?.message ||
-          'Failed to update product status';
-        showNotification('error', errorMessage);
+      onError: (error) => {
+        showError(error);
       },
     });
   };

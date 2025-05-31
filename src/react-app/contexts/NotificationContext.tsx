@@ -1,8 +1,9 @@
 import { type ReactNode, createContext, useContext, useState } from 'react';
+import { APP_CONFIG } from '../../shared/config';
 
 export type NotificationType = 'success' | 'error' | 'info';
 
-interface Notification {
+export interface Notification {
   id: string;
   type: NotificationType;
   message: string;
@@ -10,27 +11,27 @@ interface Notification {
 
 interface NotificationContextType {
   notifications: Notification[];
-  showNotification: (type: NotificationType, message: string) => void;
+  showNotification: (notification: { type: NotificationType; message: string }) => void;
   removeNotification: (id: string) => void;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(
+export const NotificationContext = createContext<NotificationContextType | undefined>(
   undefined,
 );
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  const showNotification = (type: NotificationType, message: string) => {
+  const showNotification = ({ type, message }: { type: NotificationType; message: string }) => {
     const id = Date.now().toString();
     const notification: Notification = { id, type, message };
 
     setNotifications((prev) => [...prev, notification]);
 
-    // Auto-remove after 5 seconds
+    // Auto-remove after configured delay
     setTimeout(() => {
       removeNotification(id);
-    }, 5000);
+    }, APP_CONFIG.ui.notifications.autoHideDelay);
   };
 
   const removeNotification = (id: string) => {

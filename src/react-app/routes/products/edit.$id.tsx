@@ -1,13 +1,13 @@
 import { Container, Loader, Stack } from '@mantine/core';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { ProductForm } from '~/components/ProductForm';
-import { useNotifications } from '~/contexts/NotificationContext';
+import { useNotification } from '~/hooks/useNotification';
 import { trpc } from '~/lib/trpc';
 import { useProductMutations } from '~/hooks/useProductMutations';
 import type {
-  CreateProduct,
-  UpdateProduct,
-} from '../../../worker/schemas/products';
+  CreateProductInput,
+  UpdateProductInput,
+} from '../../../shared/types';
 
 export const Route = createFileRoute('/products/edit/$id')({
   component: EditProduct,
@@ -16,7 +16,7 @@ export const Route = createFileRoute('/products/edit/$id')({
 function EditProduct() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { showNotification } = useNotifications();
+  const { showSuccess, showError } = useNotification();
 
   const {
     data: product,
@@ -29,40 +29,27 @@ function EditProduct() {
 
   const { updateProduct } = useProductMutations();
 
-  const updateMutation = {
-    ...updateProduct,
-    mutate: (data: UpdateProduct) => {
-      updateProduct.mutate(data, {
-        onSuccess: (result) => {
-          showNotification(
-            'success',
-            `Product "${result.name}" updated successfully`,
-          );
-          navigate({
-            to: '/products/$id',
-            params: { id: result.id.toString() },
-          });
-        },
-        onError: (err) => {
-          console.error('Update error:', err);
-          showNotification('error', err.message || 'Failed to update product');
-        },
-      });
-    },
-    isPending: updateProduct.isPending,
-    error: updateProduct.error,
-  };
-
-  const handleSubmit = (values: CreateProduct) => {
+  const handleSubmit = (values: CreateProductInput) => {
     if (!product) return;
 
-    const payload = {
+    const payload: UpdateProductInput = {
       id: product.id,
       ...values,
-      status: product.status, // Keep existing status in edit mode
+      status: product.status,
     };
 
-    updateMutation.mutate(payload);
+    updateProduct.mutate(payload, {
+      onSuccess: (result) => {
+        showSuccess(`Product "${result.name}" updated successfully`);
+        navigate({
+          to: '/products/$id',
+          params: { id: result.id.toString() },
+        });
+      },
+      onError: (error) => {
+        showError(error);
+      },
+    });
   };
 
   if (loadingProduct) {
@@ -103,12 +90,8 @@ function EditProduct() {
               }
             : undefined
         }
-        isSubmitting={updateMutation.isPending}
-        error={
-          updateMutation.error instanceof Error
-            ? updateMutation.error.message
-            : null
-        }
+        isSubmitting={updateProduct.isPending}
+        error={updateProduct.error?.message || null}
         onSubmit={handleSubmit}
         onCancel={() =>
           navigate({
