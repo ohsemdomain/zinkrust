@@ -4,6 +4,7 @@ import { ProductForm } from '~/components/ProductForm';
 import { notify } from '~/utils/notifications';
 import { trpc } from '~/lib/trpc';
 import type { CreateProductInput, UpdateProductInput } from '../../../shared';
+import { ProductStatus, type ProductCategory } from '../../../shared';
 
 export const Route = createFileRoute('/products/edit/$id')({
   component: EditProduct,
@@ -40,10 +41,13 @@ function EditProduct() {
   const handleSubmit = (values: CreateProductInput) => {
     if (!product) return;
 
+    // Validate status is valid before using
+    const status = product.status === ProductStatus.ACTIVE ? ProductStatus.ACTIVE : ProductStatus.INACTIVE;
+
     const payload: UpdateProductInput = {
       id: product.id,
       ...values,
-      status: product.status as 0 | 1,
+      status,
     };
 
     updateProduct.mutate(payload);
@@ -81,7 +85,7 @@ function EditProduct() {
           product
             ? {
                 name: product.name,
-                category: product.category as 1 | 2 | 3,
+                category: product.category as typeof ProductCategory.PACKAGING | typeof ProductCategory.LABEL | typeof ProductCategory.OTHER,
                 price_cents: product.price_cents,
                 description: product.description || '',
               }

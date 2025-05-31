@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import './_styles.css';
 import { theme } from './_theme';
 import { TRPCProvider } from './components/TRPCProvider';
+import { APP_CONFIG } from '../shared';
 
 // Import the generated route tree
 import { routeTree } from './routeTree.gen';
@@ -30,7 +31,7 @@ createRoot(rootElement).render(
         <RouterProvider router={router} />
         <Toaster
           toastOptions={{
-            duration: 4000,
+            duration: APP_CONFIG.ui.notifications.autoHideDelay,
             style: {
               border: '1px solid var(--mantine-color-gray-1)',
               padding: '16px',

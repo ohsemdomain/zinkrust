@@ -15,8 +15,8 @@ import {
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { z } from 'zod';
 import { trpc } from '~/lib/trpc';
-import { getCategoryName, getStatusText } from '~/utils/product.utils';
-import { ProductStatus, PriceUtils } from '../../../shared';
+import { formatters } from '~/lib/utils';
+import { ProductStatus } from '../../../shared';
 
 const searchSchema = z.object({
   filter_by: z.enum(['active', 'inactive', 'all']).optional().default('active'),
@@ -207,12 +207,12 @@ function Products() {
 
                   <Text size="sm">
                     <strong>Category:</strong>{' '}
-                    {getCategoryName(product.category)}
+                    {formatters.categoryName(product.category)}
                   </Text>
 
                   <Text size="sm">
                     <strong>Price:</strong>{' '}
-                    {PriceUtils.formatPrice(product.price_cents)}
+                    {formatters.price(product.price_cents)}
                   </Text>
 
                   <Badge
@@ -221,7 +221,7 @@ function Products() {
                     }
                     variant="light"
                   >
-                    {getStatusText(product.status)}
+                    {formatters.statusName(product.status)}
                   </Badge>
 
                   {product.description && (

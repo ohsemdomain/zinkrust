@@ -8,7 +8,7 @@ import {
   Textarea,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { ProductCategory, type CreateProductInput } from '../../shared';
+import { ProductCategory, type CreateProductInput, formTransformers, type Product } from '../../shared';
 
 // Form-specific type that works with dollars
 type ProductFormData = {
@@ -19,7 +19,7 @@ type ProductFormData = {
 };
 
 interface ProductFormProps {
-  initialValues?: Partial<CreateProductInput>;
+  initialValues?: Partial<CreateProductInput> | Partial<Product>;
   isSubmitting: boolean;
   error: string | null;
   onSubmit: (values: CreateProductInput) => void;
@@ -35,13 +35,53 @@ export function ProductForm({
   onCancel,
   submitLabel,
 }: ProductFormProps) {
+  // ==================== CONVERSION HELPERS ====================
+  
+  /**
+   * Transform API data (cents) to form data (dollars) for editing
+   */
+  const transformFromAPI = (apiData: Partial<CreateProductInput> | Partial<Product>): ProductFormData => {
+    if (!apiData.price_cents) {
+      return {
+        name: apiData.name || '',
+        category: apiData.category || ProductCategory.PACKAGING,
+        price: 0,
+        description: apiData.description || '',
+      };
+    }
+    
+    const transformed = formTransformers.productApiToForm({
+      name: apiData.name || '',
+      category: apiData.category || ProductCategory.PACKAGING,
+      price_cents: apiData.price_cents,
+      description: apiData.description || '',
+    });
+    
+    return {
+      name: transformed.name,
+      category: transformed.category,
+      price: transformed.price,
+      description: transformed.description,
+    };
+  };
+
+  /**
+   * Transform form data (dollars) to API data (cents) for submission
+   */
+  const transformToAPI = (formData: ProductFormData): CreateProductInput => {
+    const transformed = formTransformers.productFormToApi(formData);
+    return {
+      name: transformed.name,
+      category: transformed.category as 1 | 2 | 3,
+      price_cents: transformed.price_cents,
+      description: transformed.description,
+    };
+  };
+
+  // ==================== FORM SETUP ====================
+
   const form = useForm<ProductFormData>({
-    initialValues: {
-      name: initialValues?.name || '',
-      category: initialValues?.category || 0,
-      price: initialValues?.price_cents ? initialValues.price_cents / 100 : 0,
-      description: initialValues?.description || '',
-    },
+    initialValues: transformFromAPI(initialValues),
     validate: {
       name: (value) => (!value ? 'Name is required' : null),
       category: (value) => (!value ? 'Category is required' : null),
@@ -49,17 +89,11 @@ export function ProductForm({
     },
   });
 
-  // Form initializes with correct values from initialValues prop
+  // ==================== FORM SUBMISSION ====================
 
   const handleSubmit = (values: ProductFormData) => {
-    // Convert dollars to cents before sending to backend
-    const submissionData = {
-      name: values.name,
-      category: values.category,
-      price_cents: Math.round(values.price * 100), // Convert dollars to cents here
-      description: values.description,
-    };
-    onSubmit(submissionData as CreateProductInput);
+    const submissionData = transformToAPI(values);
+    onSubmit(submissionData);
   };
 
   const categoryOptions = [

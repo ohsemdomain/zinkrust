@@ -12,8 +12,8 @@ import {
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { notify } from '~/utils/notifications';
 import { trpc } from '~/lib/trpc';
-import { getCategoryName, getStatusText } from '~/utils/product.utils';
-import { ProductStatus, PriceUtils } from '../../../shared';
+import { formatters } from '~/lib/utils';
+import { ProductStatus } from '../../../shared';
 
 export const Route = createFileRoute('/products/$id')({
   component: ProductDetail,
@@ -104,30 +104,30 @@ function ProductDetail() {
           </Grid.Col>
           <Grid.Col>
             <Text>
-              <strong>Category:</strong> {getCategoryName(product.category)}
+              <strong>Category:</strong> {formatters.categoryName(product.category)}
             </Text>
           </Grid.Col>
           <Grid.Col>
             <Text>
               <strong>Price:</strong>{' '}
-              {PriceUtils.formatPrice(product.price_cents)}
+              {formatters.price(product.price_cents)}
             </Text>
           </Grid.Col>
           <Grid.Col>
             <Text>
-              <strong>Status:</strong> {getStatusText(product.status)}
+              <strong>Status:</strong> {formatters.statusName(product.status)}
             </Text>
           </Grid.Col>
           <Grid.Col>
             <Text>
               <strong>Created:</strong>{' '}
-              {new Date(product.created_at * 1000).toLocaleDateString()}
+              {formatters.date(product.created_at)}
             </Text>
           </Grid.Col>
           <Grid.Col>
             <Text>
               <strong>Updated:</strong>{' '}
-              {new Date(product.updated_at * 1000).toLocaleDateString()}
+              {formatters.date(product.updated_at)}
             </Text>
           </Grid.Col>
         </Grid>
