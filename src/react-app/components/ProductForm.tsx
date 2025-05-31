@@ -8,8 +8,7 @@ import {
   Textarea,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { ProductCategory } from '../../shared/constants';
-import type { CreateProductInput } from '../../shared/types';
+import { ProductCategory, type CreateProductInput } from '../../shared';
 
 // Form-specific type that works with dollars
 type ProductFormData = {

@@ -2,9 +2,10 @@ import { MantineProvider } from '@mantine/core';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Toaster } from 'react-hot-toast';
 import './_styles.css';
 import { theme } from './_theme';
-import { TRPCProvider } from './components/providers/TRPCProvider';
+import { TRPCProvider } from './components/TRPCProvider';
 
 // Import the generated route tree
 import { routeTree } from './routeTree.gen';
@@ -27,6 +28,16 @@ createRoot(rootElement).render(
     <TRPCProvider>
       <MantineProvider theme={theme}>
         <RouterProvider router={router} />
+        <Toaster
+          toastOptions={{
+            duration: 4000,
+            style: {
+              border: '1px solid var(--mantine-color-gray-1)',
+              padding: '16px',
+              textAlign: 'left',
+            },
+          }}
+        />
       </MantineProvider>
     </TRPCProvider>
   </StrictMode>,

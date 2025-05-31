@@ -3,16 +3,13 @@ import { useDisclosure } from '@mantine/hooks';
 import { MantineLogo } from '@mantinex/mantine-logo';
 import { Link, Outlet, createRootRoute } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
-import { NotificationList } from '~/components/ui/NotificationList';
-import { NotificationProvider } from '~/contexts/NotificationContext';
 
 export const Route = createRootRoute({
   component: () => {
     const [opened, { toggle }] = useDisclosure();
 
     return (
-      <NotificationProvider>
-        <NotificationList />
+      <>
         <AppShell
           header={{ height: 60 }}
           navbar={{
@@ -38,10 +35,7 @@ export const Route = createRootRoute({
             <AppShell.Section grow my="md" component={ScrollArea}>
               <Stack>
                 <Link to="/" className="[&.active]:font-bold">
-                  Home
-                </Link>{' '}
-                <Link to="/about" className="[&.active]:font-bold">
-                  About
+                  Dashboard
                 </Link>{' '}
                 <Link to="/products" className="[&.active]:font-bold">
                   Products
@@ -57,7 +51,7 @@ export const Route = createRootRoute({
           </AppShell.Main>
         </AppShell>
         {import.meta.env.DEV && <TanStackRouterDevtools />}
-      </NotificationProvider>
+      </>
     );
   },
 });

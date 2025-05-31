@@ -16,8 +16,7 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
 import { z } from 'zod';
 import { trpc } from '~/lib/trpc';
 import { getCategoryName, getStatusText } from '~/utils/product.utils';
-import { ProductStatus } from '../../../shared/constants';
-import { PriceUtils } from '../../../shared/utils/price';
+import { ProductStatus, PriceUtils } from '../../../shared';
 
 const searchSchema = z.object({
   filter_by: z.enum(['active', 'inactive', 'all']).optional().default('active'),

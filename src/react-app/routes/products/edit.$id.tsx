@@ -1,13 +1,9 @@
 import { Container, Loader, Stack } from '@mantine/core';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { ProductForm } from '~/components/ProductForm';
-import { useNotification } from '~/hooks/useNotification';
+import { notify } from '~/utils/notifications';
 import { trpc } from '~/lib/trpc';
-import { useProductMutations } from '~/hooks/useProductMutations';
-import type {
-  CreateProductInput,
-  UpdateProductInput,
-} from '../../../shared/types';
+import type { CreateProductInput, UpdateProductInput } from '../../../shared';
 
 export const Route = createFileRoute('/products/edit/$id')({
   component: EditProduct,
@@ -16,7 +12,6 @@ export const Route = createFileRoute('/products/edit/$id')({
 function EditProduct() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { showSuccess, showError } = useNotification();
 
   const {
     data: product,
@@ -27,7 +22,20 @@ function EditProduct() {
     { enabled: !!id },
   );
 
-  const { updateProduct } = useProductMutations();
+  const utils = trpc.useUtils();
+  const updateProduct = trpc.products.update.useMutation({
+    onSuccess: (result) => {
+      notify.success(`Product "${result.name}" updated successfully`);
+      utils.products.invalidate();
+      navigate({
+        to: '/products/$id',
+        params: { id: result.id.toString() },
+      });
+    },
+    onError: (error) => {
+      notify.error(error);
+    },
+  });
 
   const handleSubmit = (values: CreateProductInput) => {
     if (!product) return;
@@ -35,21 +43,10 @@ function EditProduct() {
     const payload: UpdateProductInput = {
       id: product.id,
       ...values,
-      status: product.status,
+      status: product.status as 0 | 1,
     };
 
-    updateProduct.mutate(payload, {
-      onSuccess: (result) => {
-        showSuccess(`Product "${result.name}" updated successfully`);
-        navigate({
-          to: '/products/$id',
-          params: { id: result.id.toString() },
-        });
-      },
-      onError: (error) => {
-        showError(error);
-      },
-    });
+    updateProduct.mutate(payload);
   };
 
   if (loadingProduct) {
@@ -84,7 +81,7 @@ function EditProduct() {
           product
             ? {
                 name: product.name,
-                category: product.category,
+                category: product.category as 1 | 2 | 3,
                 price_cents: product.price_cents,
                 description: product.description || '',
               }

@@ -1,8 +1,4 @@
-import {
-  ProductCategoryNames,
-  ProductStatus,
-  ProductStatusNames,
-} from '../../shared/constants';
+import { ProductCategoryNames, ProductStatus, ProductStatusNames } from '../../shared';
 
 export function getCategoryName(category: number): string {
   return (

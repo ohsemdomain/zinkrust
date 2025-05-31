@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { ProductForm } from '~/components/ProductForm';
-import { useNotification } from '~/hooks/useNotification';
-import { useProductMutations } from '~/hooks/useProductMutations';
-import type { CreateProductInput } from '../../../shared/types';
+import { notify } from '~/utils/notifications';
+import { trpc } from '~/lib/trpc';
+import type { CreateProductInput } from '../../../shared';
 
 export const Route = createFileRoute('/products/create')({
   component: CreateProductPage,
@@ -10,19 +10,20 @@ export const Route = createFileRoute('/products/create')({
 
 function CreateProductPage() {
   const navigate = useNavigate();
-  const { showSuccess, showError } = useNotification();
-  const { createProduct } = useProductMutations();
+  const utils = trpc.useUtils();
+  const createProduct = trpc.products.create.useMutation({
+    onSuccess: (result) => {
+      notify.success(`Product "${result.name}" created successfully`);
+      utils.products.invalidate();
+      navigate({ to: '/products' });
+    },
+    onError: (error) => {
+      notify.error(error);
+    },
+  });
 
   const handleSubmit = (values: CreateProductInput) => {
-    createProduct.mutate(values, {
-      onSuccess: (result) => {
-        showSuccess(`Product "${result.name}" created successfully`);
-        navigate({ to: '/products' });
-      },
-      onError: (error) => {
-        showError(error);
-      },
-    });
+    createProduct.mutate(values);
   };
 
   return (

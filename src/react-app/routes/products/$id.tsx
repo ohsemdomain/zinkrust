@@ -10,12 +10,10 @@ import {
   Title,
 } from '@mantine/core';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useNotification } from '~/hooks/useNotification';
-import { useProductMutations } from '~/hooks/useProductMutations';
+import { notify } from '~/utils/notifications';
 import { trpc } from '~/lib/trpc';
 import { getCategoryName, getStatusText } from '~/utils/product.utils';
-import { ProductStatus } from '../../../shared/constants';
-import { PriceUtils } from '../../../shared/utils/price';
+import { ProductStatus, PriceUtils } from '../../../shared';
 
 export const Route = createFileRoute('/products/$id')({
   component: ProductDetail,
@@ -24,7 +22,6 @@ export const Route = createFileRoute('/products/$id')({
 function ProductDetail() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { showSuccess, showError } = useNotification();
   const {
     data: product,
     isLoading: loading,
@@ -36,13 +33,22 @@ function ProductDetail() {
 
   const error = queryError instanceof Error ? queryError.message : null;
 
-  const { updateProduct } = useProductMutations();
+  const utils = trpc.useUtils();
+  const updateProduct = trpc.products.update.useMutation({
+    onSuccess: (result) => {
+      notify.success(`Product marked as ${result.status === ProductStatus.ACTIVE ? 'active' : 'inactive'}`);
+      utils.products.invalidate();
+      navigate({ to: '/products' });
+    },
+    onError: (error) => {
+      notify.error(error);
+    },
+  });
 
   const handleStatusToggle = async () => {
     if (!product) return;
 
     const isCurrentlyActive = product.status === ProductStatus.ACTIVE;
-    const action = isCurrentlyActive ? 'inactive' : 'active';
     const confirmMessage = isCurrentlyActive
       ? `Are you sure you want to mark "${product.name}" as inactive? You can view it later in the inactive products list.`
       : `Are you sure you want to mark "${product.name}" as active? It will appear in the active products list.`;
@@ -63,17 +69,7 @@ function ProductDetail() {
       status: newStatus,
     };
 
-    console.log('Updating product with payload:', updatePayload);
-
-    updateProduct.mutate(updatePayload, {
-      onSuccess: () => {
-        showSuccess(`Product marked as ${action}`);
-        navigate({ to: '/products' });
-      },
-      onError: (error) => {
-        showError(error);
-      },
-    });
+    updateProduct.mutate(updatePayload);
   };
 
   if (loading) {
