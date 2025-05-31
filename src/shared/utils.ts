@@ -1,3 +1,4 @@
+import { APP_CONFIG } from './config';
 import { ProductCategoryNames, ProductStatus } from './constants';
 
 // ==================== PRICE UTILITIES ====================
@@ -10,15 +11,16 @@ export const PriceUtils = {
     return cents / 100;
   },
 
-  formatPrice: (cents: number, locale = 'en-US', currency = 'USD'): string => {
-    return new Intl.NumberFormat(locale, {
+  formatPrice: (cents: number, locale?: string, currency?: string): string => {
+    return new Intl.NumberFormat(locale || APP_CONFIG.locale.default, {
       style: 'currency',
-      currency,
+      currency: currency || APP_CONFIG.locale.currency,
     }).format(cents / 100);
   },
 
   parseInput: (input: string | number): number => {
-    const dollars = typeof input === 'string' ? Number.parseFloat(input) : input;
+    const dollars =
+      typeof input === 'string' ? Number.parseFloat(input) : input;
     return Math.round(dollars * 100);
   },
 

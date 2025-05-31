@@ -10,9 +10,9 @@ import {
   Title,
 } from '@mantine/core';
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router';
-import { notify } from '~/utils/notifications';
 import { trpc } from '~/lib/trpc';
 import { formatters } from '~/lib/utils';
+import { notify } from '~/utils/notifications';
 import { ProductStatus } from '../../../shared';
 
 export const Route = createFileRoute('/products/$id')({
@@ -36,7 +36,9 @@ function ProductDetail() {
   const utils = trpc.useUtils();
   const updateProduct = trpc.products.update.useMutation({
     onSuccess: (result) => {
-      notify.success(`Product marked as ${result.status === ProductStatus.ACTIVE ? 'active' : 'inactive'}`);
+      notify.success(
+        `Product marked as ${result.status === ProductStatus.ACTIVE ? 'active' : 'inactive'}`,
+      );
       utils.products.invalidate();
       navigate({ to: '/products' });
     },
@@ -104,13 +106,13 @@ function ProductDetail() {
           </Grid.Col>
           <Grid.Col>
             <Text>
-              <strong>Category:</strong> {formatters.categoryName(product.category)}
+              <strong>Category:</strong>{' '}
+              {formatters.categoryName(product.category)}
             </Text>
           </Grid.Col>
           <Grid.Col>
             <Text>
-              <strong>Price:</strong>{' '}
-              {formatters.price(product.price_cents)}
+              <strong>Price:</strong> {formatters.price(product.price_cents)}
             </Text>
           </Grid.Col>
           <Grid.Col>
@@ -120,14 +122,12 @@ function ProductDetail() {
           </Grid.Col>
           <Grid.Col>
             <Text>
-              <strong>Created:</strong>{' '}
-              {formatters.date(product.created_at)}
+              <strong>Created:</strong> {formatters.date(product.created_at)}
             </Text>
           </Grid.Col>
           <Grid.Col>
             <Text>
-              <strong>Updated:</strong>{' '}
-              {formatters.date(product.updated_at)}
+              <strong>Updated:</strong> {formatters.date(product.updated_at)}
             </Text>
           </Grid.Col>
         </Grid>

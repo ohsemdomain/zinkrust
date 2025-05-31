@@ -1,4 +1,4 @@
-import { getCategoryName, getStatusText, PriceUtils } from '../../shared';
+import { PriceUtils, getCategoryName, getStatusText } from '../../shared';
 
 // ==================== CONSOLIDATED FORMATTERS ====================
 export const formatters = {
@@ -19,7 +19,7 @@ export const formatters = {
   /**
    * Format price from cents to currency display
    */
-  price: (cents: number, locale = 'en-US', currency = 'USD'): string => {
+  price: (cents: number, locale?: string, currency?: string): string => {
     return PriceUtils.formatPrice(cents, locale, currency);
   },
 

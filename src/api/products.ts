@@ -2,13 +2,13 @@ import { z } from 'zod';
 import {
   APP_CONFIG,
   type Product,
+  type ProductListResponse,
   createProductSchema,
   productFilterSchema,
-  updateProductSchema,
   productSchema,
-  type ProductListResponse,
+  updateProductSchema,
 } from '../shared';
-import { t, DatabaseError, ValidationError, generateUniqueId } from './trpc';
+import { DatabaseError, ValidationError, generateUniqueId, t } from './trpc';
 
 // ==================== SCHEMAS ====================
 const deleteProductSchema = z.object({
@@ -41,14 +41,9 @@ export const productsRouter = t.router({
         }
 
         // Validate sort column for security
-        const allowedColumns = [
-          'name',
-          'category',
-          'status',
-          'created_at',
-          'updated_at',
-        ];
-        const validSortColumn = allowedColumns.includes(sort_column)
+        const validSortColumn = APP_CONFIG.products.allowedSortColumns.includes(
+          sort_column as (typeof APP_CONFIG.products.allowedSortColumns)[number],
+        )
           ? sort_column
           : 'created_at';
         const validSortOrder = sort_order === 'ASC' ? 'ASC' : 'DESC';
@@ -114,7 +109,12 @@ export const productsRouter = t.router({
         try {
           return productSchema.parse(results[0]);
         } catch (error) {
-          console.error('Product validation error:', error, 'Data:', results[0]);
+          console.error(
+            'Product validation error:',
+            error,
+            'Data:',
+            results[0],
+          );
           throw ValidationError('Invalid product data from database');
         }
       } catch (error) {
@@ -129,7 +129,13 @@ export const productsRouter = t.router({
     .mutation(async ({ ctx, input }) => {
       try {
         const { minId, maxId, idGenerationMaxAttempts } = APP_CONFIG.products;
-        const productId = await generateUniqueId(ctx.env.DB, 'products', minId, maxId, idGenerationMaxAttempts);
+        const productId = await generateUniqueId(
+          ctx.env.DB,
+          'products',
+          minId,
+          maxId,
+          idGenerationMaxAttempts,
+        );
 
         const { results } = await ctx.env.DB.prepare(
           `INSERT INTO products (id, name, category, price_cents, description, status) 
@@ -154,7 +160,12 @@ export const productsRouter = t.router({
         try {
           return productSchema.parse(results[0]);
         } catch (error) {
-          console.error('Created product validation error:', error, 'Data:', results[0]);
+          console.error(
+            'Created product validation error:',
+            error,
+            'Data:',
+            results[0],
+          );
           throw DatabaseError('Failed to validate created product');
         }
       } catch (error) {
@@ -192,7 +203,12 @@ export const productsRouter = t.router({
         try {
           return productSchema.parse(results[0]);
         } catch (error) {
-          console.error('Updated product validation error:', error, 'Data:', results[0]);
+          console.error(
+            'Updated product validation error:',
+            error,
+            'Data:',
+            results[0],
+          );
           throw DatabaseError('Failed to validate updated product');
         }
       } catch (error) {

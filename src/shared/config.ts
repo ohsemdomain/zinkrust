@@ -6,6 +6,10 @@ export const APP_CONFIG = {
     },
     timeout: 30000,
     retries: 3,
+    cors: {
+      origin: import.meta.env.VITE_CORS_ORIGIN || '*',
+      credentials: true,
+    },
   },
   pagination: {
     defaultPageSize: 25,
@@ -21,5 +25,16 @@ export const APP_CONFIG = {
     priceDecimalPlaces: 2,
     minId: 100000000, // 9-digit minimum
     maxId: 999999999, // 9-digit maximum
+    allowedSortColumns: [
+      'name',
+      'category',
+      'status',
+      'created_at',
+      'updated_at',
+    ] as const,
+  },
+  locale: {
+    default: 'en-US',
+    currency: 'USD',
   },
 } as const;

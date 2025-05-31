@@ -1,6 +1,5 @@
 /// <reference types="@cloudflare/workers-types" />
 import { TRPCError, initTRPC } from '@trpc/server';
-import { APP_CONFIG } from '../shared';
 
 // ==================== TYPES ====================
 export interface Env {
@@ -19,14 +18,23 @@ export const DatabaseError = (message = 'Database operation failed') =>
 export const ValidationError = (message = 'Invalid input data') =>
   new TRPCError({ code: 'BAD_REQUEST', message });
 
+// ==================== TABLE WHITELIST ====================
+const ALLOWED_TABLES = ['products', 'customers', 'contacts'] as const;
+type AllowedTable = (typeof ALLOWED_TABLES)[number];
+
 // ==================== UTILITIES ====================
 export async function generateUniqueId(
   db: D1Database,
-  table: string,
+  table: AllowedTable,
   minId: number,
   maxId: number,
-  maxAttempts = 10
+  maxAttempts = 10,
 ): Promise<number> {
+  // Validate table name against whitelist
+  if (!ALLOWED_TABLES.includes(table)) {
+    throw ValidationError(`Invalid table name: ${table}`);
+  }
+
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const randomId = Math.floor(Math.random() * (maxId - minId + 1)) + minId;
 
@@ -44,4 +52,3 @@ export async function generateUniqueId(
     `Failed to generate unique ID for ${table} after ${maxAttempts} attempts`,
   );
 }
-

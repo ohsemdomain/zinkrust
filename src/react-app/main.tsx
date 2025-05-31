@@ -4,9 +4,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Toaster } from 'react-hot-toast';
 import './_styles.css';
+import { APP_CONFIG } from '../shared';
 import { theme } from './_theme';
 import { TRPCProvider } from './components/TRPCProvider';
-import { APP_CONFIG } from '../shared';
 
 // Import the generated route tree
 import { routeTree } from './routeTree.gen';

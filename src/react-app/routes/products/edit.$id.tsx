@@ -1,10 +1,10 @@
 import { Container, Loader, Stack } from '@mantine/core';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { ProductForm } from '~/components/ProductForm';
-import { notify } from '~/utils/notifications';
 import { trpc } from '~/lib/trpc';
+import { notify } from '~/utils/notifications';
 import type { CreateProductInput, UpdateProductInput } from '../../../shared';
-import { ProductStatus, type ProductCategory } from '../../../shared';
+import { type ProductCategory, ProductStatus } from '../../../shared';
 
 export const Route = createFileRoute('/products/edit/$id')({
   component: EditProduct,
@@ -42,7 +42,10 @@ function EditProduct() {
     if (!product) return;
 
     // Validate status is valid before using
-    const status = product.status === ProductStatus.ACTIVE ? ProductStatus.ACTIVE : ProductStatus.INACTIVE;
+    const status =
+      product.status === ProductStatus.ACTIVE
+        ? ProductStatus.ACTIVE
+        : ProductStatus.INACTIVE;
 
     const payload: UpdateProductInput = {
       id: product.id,
@@ -85,7 +88,10 @@ function EditProduct() {
           product
             ? {
                 name: product.name,
-                category: product.category as typeof ProductCategory.PACKAGING | typeof ProductCategory.LABEL | typeof ProductCategory.OTHER,
+                category: product.category as
+                  | typeof ProductCategory.PACKAGING
+                  | typeof ProductCategory.LABEL
+                  | typeof ProductCategory.OTHER,
                 price_cents: product.price_cents,
                 description: product.description || '',
               }

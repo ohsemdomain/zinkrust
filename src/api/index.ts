@@ -2,8 +2,9 @@
 import { trpcServer } from '@hono/trpc-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { t, type Env } from './trpc';
+import { APP_CONFIG } from '../shared';
 import { productsRouter } from './products';
+import { type Env, t } from './trpc';
 
 // ==================== MAIN APP ROUTER ====================
 const appRouter = t.router({
@@ -15,8 +16,14 @@ export type AppRouter = typeof appRouter;
 // ==================== HONO APP ====================
 const app = new Hono<{ Bindings: Env }>();
 
-// Enable CORS
-app.use('*', cors());
+// Enable CORS with configuration
+app.use(
+  '*',
+  cors({
+    origin: APP_CONFIG.api.cors.origin,
+    credentials: APP_CONFIG.api.cors.credentials,
+  }),
+);
 
 // Health check endpoint
 app.get('/health', (c) =>

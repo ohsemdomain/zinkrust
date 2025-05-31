@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { ProductForm } from '~/components/ProductForm';
-import { notify } from '~/utils/notifications';
 import { trpc } from '~/lib/trpc';
+import { notify } from '~/utils/notifications';
 import type { CreateProductInput } from '../../../shared';
 
 export const Route = createFileRoute('/products/create')({

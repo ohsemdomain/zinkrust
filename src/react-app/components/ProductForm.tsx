@@ -8,7 +8,12 @@ import {
   Textarea,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { ProductCategory, type CreateProductInput, formTransformers, type Product } from '../../shared';
+import {
+  type CreateProductInput,
+  type Product,
+  ProductCategory,
+  formTransformers,
+} from '../../shared';
 
 // Form-specific type that works with dollars
 type ProductFormData = {
@@ -36,11 +41,13 @@ export function ProductForm({
   submitLabel,
 }: ProductFormProps) {
   // ==================== CONVERSION HELPERS ====================
-  
+
   /**
    * Transform API data (cents) to form data (dollars) for editing
    */
-  const transformFromAPI = (apiData: Partial<CreateProductInput> | Partial<Product>): ProductFormData => {
+  const transformFromAPI = (
+    apiData: Partial<CreateProductInput> | Partial<Product>,
+  ): ProductFormData => {
     if (!apiData.price_cents) {
       return {
         name: apiData.name || '',
@@ -49,14 +56,14 @@ export function ProductForm({
         description: apiData.description || '',
       };
     }
-    
+
     const transformed = formTransformers.productApiToForm({
       name: apiData.name || '',
       category: apiData.category || ProductCategory.PACKAGING,
       price_cents: apiData.price_cents,
       description: apiData.description || '',
     });
-    
+
     return {
       name: transformed.name,
       category: transformed.category,
@@ -135,7 +142,7 @@ export function ProductForm({
           hideControls
           value={form.values.price || 0}
           onChange={(val) => {
-            form.setFieldValue('price', (typeof val === 'number' ? val : 0));
+            form.setFieldValue('price', typeof val === 'number' ? val : 0);
           }}
           error={form.errors.price}
         />
